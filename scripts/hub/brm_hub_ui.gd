@@ -33,7 +33,9 @@ static func label(text: String, color: Color = COLOR_TEXT, size: int = FONT_NORM
     node.mouse_filter = Control.MOUSE_FILTER_IGNORE
     node.add_theme_color_override("font_color", color)
     node.add_theme_font_size_override("font_size", size)
-    node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    # No wrapping by default: inside an HBoxContainer a wrapping label has no
+    # minimum width and breaks after every letter (alpha.2 settings row).
+    node.autowrap_mode = TextServer.AUTOWRAP_OFF
     return node
 
 

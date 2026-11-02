@@ -118,6 +118,9 @@ func test_hub_save_reload() -> void:
         check(hub.get_node_or_null("PanelContainer/MainContainer/" + path) is ResourceContainer, "default port at %s" % path)
     check(hub.containers.size() == 4, "default ports are window containers (%d)" % hub.containers.size())
     check(hub.late_appended_ports == 0, "new hub ports are collected by the window itself, not appended late (%d)" % hub.late_appended_ports)
+    check(hub.base_enter_tree_calls == 1, "WindowBase._enter_tree still runs (not replaced by the hub)")
+    for port_path in ["Cpu/Inputs/cpu_in_1/Port", "Gpu/Outputs/gpu_out_1/Port"]:
+        check(hub.get_node("PanelContainer/MainContainer/" + port_path).owner == hub, "port owned by the window: %s" % port_path)
 
     # Compact view really shrinks the window once minimum sizes propagated.
     await process_frame
@@ -194,6 +197,7 @@ func test_hub_save_reload() -> void:
         check(restored_ids.has(port_uid) and restored_ids[port_uid].id == saved.brm_port_state[port_uid].id, "container id survives reload: %s" % port_uid)
     check(Array(reloaded.get_node("PanelContainer/MainContainer/Gpu/Outputs/gpu_out_3/Port").outputs_id) == ["trainer-speed-id"], "output connections survive reload")
     check(reloaded.brm_mode == 3, "mode survives reload")
+    check(reloaded.late_appended_ports == 0, "reloaded hub ports are collected by the window itself")
     check(reloaded.containers.size() == hub.containers.size(), "no default ports added on top of a saved layout")
     check(reloaded.add_port(3) == "gpu_out_4", "uid counter survives reload")
 

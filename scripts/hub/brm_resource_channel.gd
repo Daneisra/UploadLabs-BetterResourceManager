@@ -150,8 +150,13 @@ func _read_supply() -> Dictionary:
         var container = port.container
         if not is_instance_valid(container):
             continue
-        if _is_input_connected(container):
-            connected += 1
+        if not _is_input_connected(container):
+            # A disconnected input may keep its last value; it delivers
+            # nothing any more, so it must not count as supply.
+            if float(container.count) != 0.0:
+                container.count = 0.0
+            continue
+        connected += 1
         var value := float(container.count)
         if not is_finite(value):
             invalid += 1
@@ -512,6 +517,29 @@ func _port_enabled(uid: String) -> bool:
         if port.uid == uid:
             return bool(port.settings.get("enabled", true))
     return false
+
+
+# One line per input port, for the in-game diagnosis of inputs that are wired
+# but receive nothing. Read-only.
+func describe_inputs() -> Array[String]:
+    var lines: Array[String] = []
+    for port in inputs:
+        var container = port.container
+        if not is_instance_valid(container):
+            continue
+        var source = container.input if "input" in container else null
+        var source_window = BRMUtils.get_parent_window(source) if is_instance_valid(source) else null
+        lines.append("uid=%s id=%s input_id=%s count=%s owner=%s source=%s source_window=%s source_count=%s source_transfer_has=%s source_outputs_has=%s source_looping_has=%s" % [
+            port.uid, str(container.id), str(container.input_id) if "input_id" in container else "?",
+            str(container.count), str(container.owner.name) if container.owner != null else "null",
+            str(source.id) if is_instance_valid(source) and "id" in source else "null",
+            str(source_window.name) if source_window != null else "null",
+            str(source.count) if is_instance_valid(source) else "-",
+            str("transfer" in source and source.transfer.has(container)) if is_instance_valid(source) else "-",
+            str("outputs" in source and source.outputs.has(container)) if is_instance_valid(source) else "-",
+            str("looping" in source and source.looping.has(container)) if is_instance_valid(source) else "-",
+        ])
+    return lines
 
 
 static func _targets_of(container) -> Array:

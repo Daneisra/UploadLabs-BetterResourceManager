@@ -535,7 +535,11 @@ func get_aac_manager_snapshot() -> Dictionary:
     }
 
 
-func _exit_tree() -> void:
+# A notification, not an _exit_tree override: the game's ResourceContainer
+# may do its own cleanup in _exit_tree, which an override would replace.
+func _notification(what: int) -> void:
+    if what != NOTIFICATION_EXIT_TREE:
+        return
     if graph != null:
         var callback: Callable = Callable(self, "_on_graph_changed")
         if graph.changed.is_connected(callback):

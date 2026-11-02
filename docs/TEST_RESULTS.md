@@ -1,5 +1,21 @@
 # Résultats des tests
 
+## v0.1.0-alpha.3 — 2026-11-02 (tests isolés)
+
+Load 153, Hub 325, Demand 138, Unlocks 158, Translations 73 × 2 : 0 échec. Nouveaux contrôles : `WindowBase._enter_tree` toujours exécuté, ports possédés par la fenêtre et collectés sans ajout tardif (doublure qui collecte comme `find_children()` par défaut), entrée déconnectée remise à 0 et exclue de la réserve.
+
+## v0.1.0-alpha.2 — essai en jeu du 2026-11-02 (Jérémy)
+
+| Point | Résultat |
+|---|---|
+| Entrées CPU branchées directement sur un Processeur Mk.52 (5 câbles, sans Smart Manager) | **échec** : 0 Hz reçu sur toutes les entrées, y compris après débranchement et rebranchement |
+| Sortie CPU vers 3 Enhancer MAX | besoin lu (60,1 acHz), rien distribué faute d'offre |
+| Affichage compact | la fenêtre se réduit ; **fond transparent**, câbles qui traversent le nœud quand on le déplace |
+| Réglages d'une sortie | **illisibles** : libellés coupés lettre par lettre, cases très hautes |
+| Entrée libre ajoutée automatiquement | fonctionne (6e entrée libre visible) |
+| Erreurs `canvas_item is null` | 196 (contre 662 avec l'alpha.1) |
+| Journal | ports toujours « missing from window containers » ; `window_moved` est écouté par `res://scripts/connectors.gd`, `window_initialized` par `desktop.gd` et d'autres |
+
 ## v0.1.0-alpha.2 — 2026-11-02 (tests isolés)
 
 | Suite | Résultat |

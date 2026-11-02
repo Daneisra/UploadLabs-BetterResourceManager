@@ -922,6 +922,23 @@ func test_review_regressions() -> void:
         check(is_finite(seller_speed.count), "mode %d: infinite total never distributed" % mode)
         check(int(big_channel.stats.invalid_values) > 0, "mode %d: infinite total reported" % mode)
 
+    # Stale value on a disconnected input is never counted as supply.
+    var stale_hub := make_window("hub_stale")
+    var live := hub_input(stale_hub, CPU, 100.0)
+    var unplugged := add_container(stale_hub, CPU, 1, true, 900.0)
+    var stale_out := hub_output(stale_hub, CPU)
+    var stale_sink := make_consumer("stale_sink", CPU, 10.0, 1.0, 1.0, 0.0)
+    wire(stale_out, stale_sink.speed)
+    var stale := Channel.new(CPU, stale_hub)
+    stale.set_ports([{"uid": "live", "container": live}, {"uid": "unplugged", "container": unplugged}],
+        [{"uid": "out", "container": stale_out, "settings": Layout.default_settings()}])
+    stale.tick(Channel.Mode.AUTO)
+    near(stale.stats.supply, 100.0, "disconnected input keeping an old value is not supply")
+    near(unplugged.count, 0.0, "disconnected input reset to 0")
+    near(stale_sink.speed.count, 100.0, "only real supply is distributed")
+    check(int(stale.stats.connected_inputs) == 1, "only wired inputs are counted as connected")
+    check(stale.describe_inputs().size() == 2, "input diagnosis describes every port")
+
     # 8. Exact determinism including the conservation correction.
     var forward := Allocator.allocate(100.0, [req("x", 1000, 1.0), req("y", 1000, 1.0), req("z", 1000, 4.0)], Allocator.Policy.AUTO)
     var backward := Allocator.allocate(100.0, [req("z", 1000, 4.0), req("y", 1000, 1.0), req("x", 1000, 1.0)], Allocator.Policy.AUTO)

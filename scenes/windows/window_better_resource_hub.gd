@@ -134,11 +134,37 @@ func _post_ready() -> void:
 func tick(_delta: float) -> void:
     for channel in _channels.values():
         channel.tick(_mode)
+    _diagnose_silent_inputs()
 
     _ui_counter += 1
     if _ui_counter >= UI_REFRESH_TICKS:
         _ui_counter = 0
         _refresh_ui()
+
+
+# Wired inputs that stay at 0: log what the game shows about their source,
+# at most INPUT_REPORT_LIMIT times per session (read-only diagnosis).
+static var _input_reports := 0
+const INPUT_REPORT_LIMIT := 3
+const INPUT_REPORT_TICKS := 120
+var _silent_ticks := 0
+
+
+func _diagnose_silent_inputs() -> void:
+    if _input_reports >= INPUT_REPORT_LIMIT:
+        return
+    var silent := false
+    for channel in _channels.values():
+        if int(channel.stats.get("connected_inputs", 0)) > 0 and float(channel.stats.get("supply", 0.0)) <= 0.0:
+            silent = true
+    _silent_ticks = _silent_ticks + 1 if silent else 0
+    if _silent_ticks < INPUT_REPORT_TICKS:
+        return
+    _silent_ticks = 0
+    _input_reports += 1
+    for resource in _channels.keys():
+        for line in _channels[resource].describe_inputs():
+            print("%s Silent input window='%s' resource=%s %s" % [LOG_PREFIX, name, resource, line])
 
 
 func get_resource_demand(resource: String) -> float:
@@ -265,6 +291,11 @@ func _create_port_node(port: Dictionary) -> void:
         row.add_child(settings_box)
 
     list.add_child(row)
+    # Owned by the window like nodes of a regular window scene: the game finds
+    # a window's containers with find_children(), which only returns owned
+    # nodes (alpha.2 ports were reported "missing from window containers").
+    row.owner = self
+    container.owner = self
     _ports[uid] = {
         "uid": uid,
         "kind": kind,
@@ -436,11 +467,16 @@ func _ensure_sections() -> void:
         compact_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         toolbar.add_child(compact_button)
         main.add_child(toolbar)
+        toolbar.owner = self
 
     for resource in SECTION_NODES.keys():
         if main.get_node_or_null(SECTION_NODES[resource]) != null:
             continue
-        main.add_child(_build_section(resource))
+        var section := _build_section(resource)
+        main.add_child(section)
+        section.owner = self
+        for child in section.get_children():
+            child.owner = self
 
 
 func _build_section(resource: String) -> Control:
@@ -486,6 +522,7 @@ func _build_section(resource: String) -> Control:
 
     var status := UI.label("", UI.COLOR_MUTED, UI.FONT_SMALL)
     status.name = "Status"
+    status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     section.add_child(status)
     return section
 
@@ -865,22 +902,26 @@ func _dispose_graph() -> void:
     _graph = null
 
 
-func _enter_tree() -> void:
-    if not is_node_ready():
-        # Before the game's own _ready collects this window's containers:
-        # a new hub (no saved layout) builds its default ports here.
-        _ensure_ports()
-        return
-    _connect_runtime_signals()
-    _apply_mode()
-    _on_topology_changed()
-
-
-func _exit_tree() -> void:
-    _dispose_graph()
-    for channel in _channels.values():
-        channel.graph = null
-    _disconnect_runtime_signals()
+# Notifications instead of _enter_tree/_exit_tree overrides: an override
+# replaces WindowBase's own implementation, and the game sets the window up
+# there (observed in alpha.1/alpha.2: transparent background, connection lines
+# not following the window, "canvas_item is null" errors).
+func _notification(what: int) -> void:
+    match what:
+        NOTIFICATION_ENTER_TREE:
+            if not is_node_ready():
+                # A new hub (no saved layout) builds its default ports before
+                # the game's own _ready collects the window's containers.
+                _ensure_ports()
+                return
+            _connect_runtime_signals()
+            _apply_mode()
+            _on_topology_changed()
+        NOTIFICATION_EXIT_TREE:
+            _dispose_graph()
+            for channel in _channels.values():
+                channel.graph = null
+            _disconnect_runtime_signals()
 
 
 # --- Helpers ------------------------------------------------------------------

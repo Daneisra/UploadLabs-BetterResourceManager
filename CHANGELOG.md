@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.1.0-alpha.3
+
+Corrections après l'essai en jeu de l'alpha.2 (entrées à 0 même branchées directement sur un Processeur Mk.52, fond transparent, câbles qui ne suivent pas le nœud, réglages illisibles).
+
+### Corrigé
+
+- Le hub ne remplace plus `_enter_tree()` / `_exit_tree()` de `WindowBase` (remplacés par des notifications) : l'initialisation native de la fenêtre s'exécute à nouveau. C'est la cause probable du fond transparent, des câbles mal placés et des erreurs `canvas_item is null` restantes.
+- Les ports sont possédés (`owner`) par la fenêtre, comme les nœuds d'une scène de fenêtre classique : le jeu les trouve lui-même parmi les conteneurs de la fenêtre. C'est la cause probable des entrées qui ne recevaient rien.
+- Une entrée déconnectée qui garde une ancienne valeur n'est plus comptée dans la réserve ; elle est remise à 0.
+- Ligne de réglages d'une sortie : les libellés ne se coupent plus après chaque lettre.
+- Smart Managers : leur conteneur de sortie ne remplace plus `_exit_tree()` du conteneur natif.
+
+### Ajouté
+
+- Diagnostic en jeu (3 rapports par session au plus) : si des entrées branchées ne reçoivent rien, le journal décrit leur source telle que le jeu la voit.
+
 ## v0.1.0-alpha.2
 
 Corrections après le premier essai en jeu de l'alpha.1 et la revue Codex du commit `3092e8d`.

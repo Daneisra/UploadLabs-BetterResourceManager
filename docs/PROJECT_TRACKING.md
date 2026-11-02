@@ -16,11 +16,11 @@ Un gestionnaire unique, fiable et extensible, qui centralise toutes les ressourc
 | Correction AI Trainer (surplus + stock en attente) | fait, simulée ; critère en jeu à vérifier |
 | Tests isolés (hub, load, demand, unlocks, translations) | réussis |
 | ZIP installable vérifié | fait |
-| Validation en jeu | alpha.1 essayée le 2026-11-02 ; alpha.2 installée, essai en attente (voir [TEST_RESULTS.md](TEST_RESULTS.md)) |
+| Validation en jeu | alpha.1 et alpha.2 essayées le 2026-11-02 (entrées du hub à 0) ; alpha.3 à essayer (voir [TEST_RESULTS.md](TEST_RESULTS.md)) |
 
 ## Problèmes connus à traiter
 
-- **Entrée déconnectée qui garde une ancienne valeur positive** (signalé le 2026-11-02, non corrigé). Si le jeu ne remet pas à 0 le `count` d'une entrée quand son câble est retiré, `_read_supply()` (`scripts/hub/brm_resource_channel.gd`) continue de l'additionner. Le hub distribuerait alors une ressource qui n'arrive plus, ce qui violerait la règle de conservation. Piste : ignorer, ou remettre à 0, toute entrée sans source (`input_id` vide / `input` nul). Vérifier en jeu si le cas se produit, puis ajouter un test de régression. Le même risque existe pour les entrées des Smart Managers (comportement hérité, à vérifier).
+- **Entrée déconnectée qui garde une ancienne valeur positive** (signalé le 2026-11-02 ; corrigé pour le hub en alpha.3, entrée sans câble remise à 0 et testée ; reste à vérifier pour les Smart Managers). Si le jeu ne remet pas à 0 le `count` d'une entrée quand son câble est retiré, `_read_supply()` (`scripts/hub/brm_resource_channel.gd`) continue de l'additionner. Le hub distribuerait alors une ressource qui n'arrive plus, ce qui violerait la règle de conservation. Piste : ignorer, ou remettre à 0, toute entrée sans source (`input_id` vide / `input` nul). Vérifier en jeu si le cas se produit, puis ajouter un test de régression. Le même risque existe pour les entrées des Smart Managers (comportement hérité, à vérifier).
 
 ## Prochaines étapes
 

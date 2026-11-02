@@ -10,9 +10,18 @@ var closing: bool = false
 
 func _collect_containers() -> Array[ResourceContainer]:
     var result: Array[ResourceContainer] = []
-    for node in find_children("*", "ResourceContainer", true, false):
+    # owned = true, like find_children()'s default: only nodes owned by the
+    # window are containers (observed in game).
+    for node in find_children("*", "ResourceContainer", true, true):
         result.append(node)
     return result
+
+
+var base_enter_tree_calls := 0
+
+
+func _enter_tree() -> void:
+    base_enter_tree_calls += 1
 
 
 func _ready() -> void:
