@@ -519,6 +519,72 @@ func _port_enabled(uid: String) -> bool:
     return false
 
 
+func count_silent_inputs() -> int:
+    var silent := 0
+    for port in inputs:
+        var container = port.container
+        if is_instance_valid(container) and _is_input_connected(container) and float(container.count) <= 0.0:
+            silent += 1
+    return silent
+
+
+# Script properties and signal connections of an input that receives, compared
+# with each input that is wired but stays at 0. Read-only diagnosis.
+func describe_input_differences() -> Array[String]:
+    var lines: Array[String] = []
+    var reference = null
+    for port in inputs:
+        var container = port.container
+        if is_instance_valid(container) and _is_input_connected(container) and float(container.count) > 0.0:
+            reference = port
+            break
+    if reference == null:
+        return lines
+    var expected := _snapshot(reference.container)
+    lines.append("reference uid=%s %s" % [reference.uid, _format_snapshot(expected)])
+    for port in inputs:
+        var container = port.container
+        if port == reference or not is_instance_valid(container) or not _is_input_connected(container) or float(container.count) > 0.0:
+            continue
+        var actual := _snapshot(container)
+        var differences: Array[String] = []
+        for key in expected.keys():
+            if str(actual.get(key, "<missing>")) != str(expected[key]):
+                differences.append("%s:%s->%s" % [key, str(expected[key]), str(actual.get(key, "<missing>"))])
+        lines.append("silent uid=%s diff=%s" % [port.uid, ",".join(differences)])
+    return lines
+
+
+static func _snapshot(container) -> Dictionary:
+    var values: Dictionary = {}
+    for property in container.get_property_list():
+        if int(property.usage) & PROPERTY_USAGE_SCRIPT_VARIABLE:
+            var name: String = property.name
+            if name in ["id", "input_id", "count", "production", "input", "outputs_id"]:
+                continue
+            values[name] = str(container.get(name)).substr(0, 48)
+    values["~owner"] = str(container.owner.name) if container.owner != null else "null"
+    values["~groups"] = ",".join(container.get_groups())
+    values["~process"] = "%s/%s" % [str(container.is_processing()), str(container.is_physics_processing())]
+    for entry in container.get_signal_list():
+        var signal_name := str(entry.name)
+        var connections: int = container.get_signal_connection_list(signal_name).size()
+        if connections > 0:
+            values["~sig." + signal_name] = connections
+    var source = container.input if "input" in container else null
+    if is_instance_valid(source):
+        values["~source.transfer_has"] = "transfer" in source and source.transfer.has(container)
+        values["~source.looping_has"] = "looping" in source and source.looping.has(container)
+    return values
+
+
+static func _format_snapshot(values: Dictionary) -> String:
+    var parts: Array[String] = []
+    for key in values.keys():
+        parts.append("%s=%s" % [key, str(values[key])])
+    return ",".join(parts)
+
+
 # One line per input port, for the in-game diagnosis of inputs that are wired
 # but receive nothing. Read-only.
 func describe_inputs() -> Array[String]:

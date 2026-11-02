@@ -23,6 +23,7 @@ func run() -> void:
     await process_frame
     test_every_script_loads()
     test_scenes_instantiate()
+    test_number_format()
     await test_registration_and_aliases()
     await test_hub_save_reload()
     await test_legacy_manager_save()
@@ -44,6 +45,16 @@ func test_every_script_loads() -> void:
         check(script is Script, "script parses: %s" % path)
         if script is Script:
             check(script.can_instantiate(), "script can instantiate: %s" % path)
+
+
+func test_number_format() -> void:
+    var ui = load(MOD_ROOT + "/scripts/hub/brm_hub_ui.gd")
+    var cases := {4.86e20: "486EHz", 1.134e21: "1.13ZHz", 1.62e20: "162EHz", 0.0: "0.00Hz", 9.997e20: "1.00ZHz", 6.48e21: "6.48ZHz", 3.78e20: "378EHz", 1500.0: "1.50kHz"}
+    for value in cases.keys():
+        var text: String = ui.format_value(value)
+        check(text == cases[value], "format %s -> %s (got %s)" % [value, cases[value], text])
+    for text in ["486EHz", "1.13ZHz", "2.5e21", "1500"]:
+        check(not is_nan(ui.parse_value(text)), "parse %s" % text)
 
 
 func test_scenes_instantiate() -> void:
@@ -116,7 +127,10 @@ func test_hub_save_reload() -> void:
     await process_frame
     for path in ["Cpu/Inputs/cpu_in_1/Port", "Cpu/Outputs/cpu_out_1/Port", "Gpu/Inputs/gpu_in_1/Port", "Gpu/Outputs/gpu_out_1/Port"]:
         check(hub.get_node_or_null("PanelContainer/MainContainer/" + path) is ResourceContainer, "default port at %s" % path)
-    check(hub.containers.size() == 4, "default ports are window containers (%d)" % hub.containers.size())
+    var default_ports: int = hub.brm_layout.ports.size()
+    check(default_ports == 4 + 2 * (8 + 4), "new hub: one visible port and the spares of each kind (%d)" % default_ports)
+    check(hub.containers.size() == default_ports, "all ports, spares included, are window containers (%d)" % hub.containers.size())
+    check(not hub.get_node("PanelContainer/MainContainer/Cpu/Inputs/cpu_in_2").visible, "spare ports are hidden")
     check(hub.late_appended_ports == 0, "new hub ports are collected by the window itself, not appended late (%d)" % hub.late_appended_ports)
     check(hub.base_enter_tree_calls == 1, "WindowBase._enter_tree still runs (not replaced by the hub)")
     for port_path in ["Cpu/Inputs/cpu_in_1/Port", "Gpu/Outputs/gpu_out_1/Port"]:
@@ -161,8 +175,8 @@ func test_hub_save_reload() -> void:
     added.outputs_id.clear()
     check(hub.remove_port("cpu_out_2"), "disconnected port removed")
     await process_frame
-    check(hub.get_node_or_null("PanelContainer/MainContainer/Cpu/Outputs/cpu_out_2") == null, "removed port node is gone")
-    check(hub.containers.size() == 4, "removed port left window containers")
+    check(not hub.get_node("PanelContainer/MainContainer/Cpu/Outputs/cpu_out_2").visible, "removed port is hidden again as a spare")
+    check(hub.containers.size() == default_ports, "removed set-up port stays a window container (spare)")
     hub.add_port(3)
     hub.add_port(3)
     hub.remove_port("gpu_out_2")
@@ -198,8 +212,20 @@ func test_hub_save_reload() -> void:
     check(Array(reloaded.get_node("PanelContainer/MainContainer/Gpu/Outputs/gpu_out_3/Port").outputs_id) == ["trainer-speed-id"], "output connections survive reload")
     check(reloaded.brm_mode == 3, "mode survives reload")
     check(reloaded.late_appended_ports == 0, "reloaded hub ports are collected by the window itself")
-    check(reloaded.containers.size() == hub.containers.size(), "no default ports added on top of a saved layout")
-    check(reloaded.add_port(3) == "gpu_out_4", "uid counter survives reload")
+    check(reloaded.containers.size() == reloaded.brm_layout.ports.size(), "every saved port, and only those plus topped-up spares, exists")
+    check(int(reloaded.brm_layout.next.gpu_out) >= int(hub.brm_layout.next.gpu_out), "uid counter survives reload")
+    check(reloaded.brm_layout.ports.filter(func(port): return port.kind == 3 and port.spare).size() == 4, "spares topped up on load")
+    var revealed: String = reloaded.add_port(3)
+    check(not revealed.is_empty() and reloaded.get_node("PanelContainer/MainContainer/Gpu/Outputs/" + revealed).visible, "adding after reload reveals a prepared spare")
+    for _i in range(8):
+        reloaded.add_port(2)
+    check(reloaded._live_ports.is_empty(), "the 8 GPU input spares are revealed without live ports")
+    var live: String = reloaded.add_port(2)
+    check(reloaded._live_ports.has(live), "once spares run out, a new port is marked active after reload (%s)" % live)
+    reloaded._refresh_ui()
+    var gpu_status: String = reloaded.get_node("PanelContainer/MainContainer/Gpu/Status").text
+    check(gpu_status.contains("brm_diag_pending_reload") or gpu_status.contains("1"), "status reports the port waiting for a reload (%s)" % gpu_status)
+    check(reloaded.remove_port(live) and not reloaded._live_ports.has(live), "a live port can be removed")
 
     # Runtime paths: ticks, UI refresh and every UI action, in every mode.
     var cpu_in = reloaded.get_node("PanelContainer/MainContainer/Cpu/Inputs/cpu_in_1/Port")

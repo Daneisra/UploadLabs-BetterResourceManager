@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.1.0-alpha.4
+
+Après l'essai en jeu de l'alpha.3 : le hub fonctionne, mais un port ajouté en cours de partie reste à 0 jusqu'au rechargement (10 entrées branchées, seule la première, créée avec la fenêtre, recevait).
+
+### Ajouté
+
+- **Ports de réserve** : chaque hub prépare dès sa création 8 entrées et 4 sorties masquées par ressource. `+ Entrée` / `+ Sortie` et l'entrée libre automatique révèlent un port de réserve, qui fonctionne tout de suite. Retirer un port le remet en réserve. Les réserves sont complétées à chaque chargement.
+- Au-delà des réserves, un port créé en direct est marqué « après rechargement » (et signalé dans l'état de la ressource) au lieu de paraître fonctionnel.
+- Diagnostic en jeu : si une entrée branchée reste à 0, le journal compare ses propriétés et connexions de signaux à celles d'une entrée qui reçoit, pour trouver la vraie cause.
+
+### Modifié
+
+- Les totaux du hub utilisent la même notation que les ports du jeu (`486EHz`, `1.13ZHz`) au lieu de celle de `Utils.print_string` (`486abHz`, `1.13acHz`).
+
 ## v0.1.0-alpha.3
 
 Corrections après l'essai en jeu de l'alpha.2 (entrées à 0 même branchées directement sur un Processeur Mk.52, fond transparent, câbles qui ne suivent pas le nœud, réglages illisibles).

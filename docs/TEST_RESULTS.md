@@ -1,5 +1,23 @@
 # Résultats des tests
 
+## v0.1.0-alpha.4 — 2026-11-03 (tests isolés)
+
+Load 219, Hub 336, Demand 138, Unlocks 158, Translations 76 × 2 : 0 échec. Nouveaux contrôles : réserves créées avec la fenêtre, masquées, révélées par `+`, remises en réserve au retrait, complétées au rechargement ; port en direct signalé « après rechargement » une fois les réserves épuisées ; notation des valeurs identique à celle des ports.
+
+## v0.1.0-alpha.3 — essai en jeu du 2026-11-03 (Jérémy)
+
+| Point | Résultat |
+|---|---|
+| Hub rechargé depuis la sauvegarde (5 entrées CPU sur un Processeur Mk.52) | **réussi** : Reçu 1,13 ZHz, distribué à 3 Enhancer MAX (378 EHz chacun), Inutilisé 0 |
+| Chaîne GPU Manager → hub → Neuron Reinforcer, Entraîneur d'IA, générateur de programme (Auto) | **réussi** : Reçu 6,48 ZHz, tout distribué |
+| Sauvegarde puis rechargement d'un hub | **réussi** (hub présent au lancement, ports et connexions repris, aucune erreur) |
+| Fond du hub, câbles lors du déplacement | **corrigés** (opaques, câbles alignés) |
+| Ligne de réglages d'une sortie | lisible |
+| Erreurs `canvas_item is null` | **0** |
+| Hub neuf avec 10 entrées sur 2 processeurs | **échec partiel** : seule l'entrée créée avec la fenêtre (`cpu_in_1`) reçoit ; les 9 ajoutées en cours de partie restent à 0 |
+| Notation | les totaux affichaient `acHz` / `abHz` quand les ports affichent `ZHz` / `EHz` |
+| Message de pénurie | permanent avec les Enhancer MAX : leur besoin Auto inclut leur stock de jeux en attente |
+
 ## v0.1.0-alpha.3 — 2026-11-02 (tests isolés)
 
 Load 153, Hub 325, Demand 138, Unlocks 158, Translations 73 × 2 : 0 échec. Nouveaux contrôles : `WindowBase._enter_tree` toujours exécuté, ports possédés par la fenêtre et collectés sans ajout tardif (doublure qui collecte comme `find_children()` par défaut), entrée déconnectée remise à 0 et exclue de la réserve.

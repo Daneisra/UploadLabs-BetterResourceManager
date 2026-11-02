@@ -82,12 +82,30 @@ static func separator(color: Color) -> HSeparator:
     return node
 
 
+# Same notation as the game's CPU/GPU ports ("486EHz", "1.13ZHz"): metric
+# prefixes and three significant digits. Utils.print_string uses another
+# ladder for these magnitudes ("486ab", "1.13ac"), which read as different
+# units next to the ports; it is kept only beyond the last metric prefix.
+const METRIC_PREFIXES := ["", "k", "M", "G", "T", "P", "E", "Z", "Y", "R", "Q"]
+
+
 static func format_value(value: float, suffix: String = "Hz") -> String:
     if is_nan(value):
         return "NaN"
     if is_inf(value):
         return "∞"
-    return str(Utils.print_string(value)) + suffix
+    var magnitude := absf(value)
+    if magnitude < 1.0:
+        return "%.2f%s" % [value, suffix]
+    var step := int(floor(log(magnitude) / log(1000.0)))
+    if step >= METRIC_PREFIXES.size():
+        return str(Utils.print_string(value)) + suffix
+    var scaled := value / pow(1000.0, step)
+    if absf(scaled) >= 999.5 and step + 1 < METRIC_PREFIXES.size():
+        step += 1
+        scaled = value / pow(1000.0, step)
+    var digits := 0 if absf(scaled) >= 100.0 else (1 if absf(scaled) >= 10.0 else 2)
+    return "%.*f%s%s" % [digits, scaled, METRIC_PREFIXES[step], suffix]
 
 
 # Accepts "2.5e21", "2.5 Z", "2,5ZHz", "1500". Empty text means "no value".

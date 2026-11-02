@@ -108,6 +108,12 @@ Un hub déclare à l'amont, par ressource, sa demande finie (`get_resource_deman
 
 Une entrée native n'accepte qu'une connexion. Quand la dernière entrée libre d'une ressource est branchée, le hub en ajoute une automatiquement.
 
+## Ports de réserve
+
+Constat en jeu (alpha.3) : un port créé après la mise en place de la fenêtre est connectable et inscrit sur le bureau, mais ne reçoit rien du jeu avant un rechargement ; les ports qui existent dès la création fonctionnent. La cause exacte n'est pas encore identifiée (diagnostic comparatif dans le journal, préfixe `Input diff`).
+
+Chaque hub crée donc avec la fenêtre `SPARE_INPUTS` = 8 entrées et `SPARE_OUTPUTS` = 4 sorties masquées par ressource (`spare: true` dans `brm_layout`). Ajouter un port révèle une réserve ; retirer un port créé avec la fenêtre le remet en réserve. Les réserves sont complétées avant `_ready` à chaque chargement. Un port créé en direct faute de réserve est marqué « après rechargement ». Les réserves ne sont transmises ni aux canaux ni à l'affichage.
+
 ## Ports ajoutés en cours de partie
 
 Un port créé après `_ready` n'existait pas quand la fenêtre a collecté ses conteneurs. Le hub l'ajoute à `containers`, lui attribue un identifiant s'il n'en a pas, et l'inscrit dans `Globals.desktop.resources` s'il n'y est pas. Puis il vérifie l'inscription et affiche « port non reconnu » en cas d'échec, plutôt que de montrer un port qui ne serait pas connectable. **Ce chemin dépend d'API non publiques et doit être validé en jeu** (voir la sonde).

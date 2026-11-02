@@ -16,6 +16,7 @@ const PORT_UNREGISTERED := "port_unregistered"
 const INVALID_VALUES := "invalid_values"
 const GRAPH_TRUNCATED := "graph_truncated"
 const MANY_PORTS := "many_ports"
+const PENDING_RELOAD := "pending_reload"
 
 # Unused supply below this share of the supply is rounding, not a warning.
 const UNUSED_WARNING_SHARE := 0.001
@@ -30,6 +31,8 @@ static func evaluate(stats: Dictionary) -> Array:
     var uncapped := int(stats.get("uncapped", 0))
     var unused := float(stats.get("unused", 0.0))
 
+    if int(stats.get("pending_reload_ports", 0)) > 0:
+        codes.append({"code": PENDING_RELOAD, "severity": Severity.WARNING, "value": int(stats.pending_reload_ports)})
     if int(stats.get("unregistered_ports", 0)) > 0:
         codes.append({"code": PORT_UNREGISTERED, "severity": Severity.ERROR, "value": int(stats.unregistered_ports)})
     if int(stats.get("cycles", 0)) > 0:

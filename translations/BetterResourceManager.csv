@@ -72,3 +72,6 @@ brm_diag_port_unregistered,"%d port(s) not recognised by the game, save and relo
 brm_diag_invalid_values,Invalid values ignored,Valeurs invalides ignorées
 brm_diag_graph_truncated,"Network too large, loop check incomplete","Réseau trop grand, contrôle des boucles incomplet"
 brm_diag_many_ports,%d ports: Compact view recommended,%d ports : affichage compact conseillé
+brm_port_after_reload,after reload,après rechargement
+brm_port_after_reload_tooltip,"Upload Labs only feeds ports that exist when the window is set up. Save and reload to activate this port; spare ports are prepared again at every load.","Upload Labs n'alimente que les ports qui existent quand la fenêtre est créée. Sauvegardez puis rechargez pour activer ce port ; des ports de réserve sont préparés à chaque chargement."
+brm_diag_pending_reload,"%d port(s) active after save and reload","%d port(s) actif(s) après sauvegarde et rechargement"

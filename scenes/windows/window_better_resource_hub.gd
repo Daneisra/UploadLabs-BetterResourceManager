@@ -90,12 +90,17 @@ var _relayout_pending := false
 # Ports the game did not collect itself and that had to be appended to
 # containers (tests expect 0 for hubs created normally).
 var late_appended_ports := 0
+# Ports created after the window was set up. The game only feeds ports that
+# existed from the start, so these stay inactive until the save is reloaded.
+var _live_ports: Dictionary = {}
 
 
 func _ensure_ports() -> void:
     if not _layout_ready:
         _layout = PortLayout.default_layout()
         _layout_ready = true
+    if not is_node_ready():
+        PortLayout.top_up_spares(_layout)
     _ensure_sections()
     _sync_port_nodes()
 
@@ -155,7 +160,7 @@ func _diagnose_silent_inputs() -> void:
         return
     var silent := false
     for channel in _channels.values():
-        if int(channel.stats.get("connected_inputs", 0)) > 0 and float(channel.stats.get("supply", 0.0)) <= 0.0:
+        if channel.count_silent_inputs() > 0:
             silent = true
     _silent_ticks = _silent_ticks + 1 if silent else 0
     if _silent_ticks < INPUT_REPORT_TICKS:
@@ -165,6 +170,10 @@ func _diagnose_silent_inputs() -> void:
     for resource in _channels.keys():
         for line in _channels[resource].describe_inputs():
             print("%s Silent input window='%s' resource=%s %s" % [LOG_PREFIX, name, resource, line])
+        for line in _channels[resource].describe_input_differences():
+            print("%s Input diff window='%s' resource=%s %s" % [LOG_PREFIX, name, resource, line])
+    var live: Array = _live_ports.keys()
+    print("%s Input report window='%s' live_ports=%s" % [LOG_PREFIX, name, ",".join(live)])
 
 
 func get_resource_demand(resource: String) -> float:
@@ -195,6 +204,10 @@ func _restore_layout(value) -> void:
         ])
     _layout = parsed.layout
     _layout_ready = true
+    if not is_node_ready():
+        # Saved before spares existed, or spares used since: top them up while
+        # new ports can still be set up with the window.
+        PortLayout.top_up_spares(_layout)
     _ensure_sections()
     _sync_port_nodes()
     if is_node_ready():
@@ -202,9 +215,18 @@ func _restore_layout(value) -> void:
 
 
 func add_port(kind: int) -> String:
-    var uid := PortLayout.add_port(_layout, kind)
+    var uid := ""
+    if is_node_ready():
+        uid = PortLayout.reveal_spare(_layout, kind)
+    var revealed := not uid.is_empty()
+    if not revealed:
+        uid = PortLayout.add_port(_layout, kind)
     if uid.is_empty():
         return ""
+    if revealed:
+        _apply_spare_visibility(uid)
+    elif is_node_ready():
+        _live_ports[uid] = true
     _sync_port_nodes()
     _refresh_channel_ports()
     _refresh_ui()
@@ -219,7 +241,14 @@ func remove_port(uid: String) -> bool:
         return false
     if _is_port_connected(entry.container):
         return false
-    PortLayout.remove_port(_layout, uid)
+    if _live_ports.has(uid):
+        _live_ports.erase(uid)
+        PortLayout.remove_port(_layout, uid)
+    else:
+        # A port set up with the window is kept as a hidden spare: it works
+        # again at once if a port of that kind is added later.
+        PortLayout.set_spare(_layout, uid, true)
+        _apply_spare_visibility(uid)
     _sync_port_nodes()
     _refresh_channel_ports()
     _refresh_ui()
@@ -291,6 +320,7 @@ func _create_port_node(port: Dictionary) -> void:
         row.add_child(settings_box)
 
     list.add_child(row)
+    row.visible = not PortLayout.is_spare(port)
     # Owned by the window like nodes of a regular window scene: the game finds
     # a window's containers with find_children(), which only returns owned
     # nodes (alpha.2 ports were reported "missing from window containers").
@@ -366,13 +396,19 @@ func _verify_ports() -> void:
         ])
 
 
+func _apply_spare_visibility(uid: String) -> void:
+    var entry = _ports.get(uid)
+    if entry != null and is_instance_valid(entry.row):
+        entry.row.visible = not PortLayout.is_spare(PortLayout.get_port(_layout, uid))
+
+
 func _refresh_channel_ports() -> void:
     for resource in _channels.keys():
         var inputs: Array = []
         var outputs: Array = []
         for port in _layout.get("ports", []):
             var kind := int(port.kind)
-            if PortLayout.resource_for(kind) != resource or not _ports.has(str(port.uid)):
+            if PortLayout.resource_for(kind) != resource or not _ports.has(str(port.uid)) or PortLayout.is_spare(port):
                 continue
             var entry: Dictionary = _ports[str(port.uid)]
             if PortLayout.is_input(kind):
@@ -670,6 +706,11 @@ func _refresh_ui() -> void:
             if _ports.has(uid) and _ports[uid].resource == resource:
                 unregistered += 1
         stats["unregistered_ports"] = unregistered
+        var pending := 0
+        for uid in _live_ports.keys():
+            if _ports.has(uid) and _ports[uid].resource == resource:
+                pending += 1
+        stats["pending_reload_ports"] = pending
 
         var summary: Label = section.get_node("Header/Summary")
         var text := _fmt("brm_summary", [
@@ -707,7 +748,7 @@ func _refresh_port_rows() -> void:
     var counters: Dictionary = {}
     for port in _layout.get("ports", []):
         var uid := str(port.uid)
-        if not _ports.has(uid):
+        if not _ports.has(uid) or PortLayout.is_spare(port):
             continue
         var entry: Dictionary = _ports[uid]
         var kind := int(port.kind)
@@ -725,6 +766,12 @@ func _refresh_port_rows() -> void:
         entry.remove_button.disabled = connected
         entry.remove_button.tooltip_text = tr("brm_remove_connected") if connected else tr("brm_remove_port")
 
+        if _live_ports.has(uid):
+            entry.flow_label.text = tr("brm_port_after_reload")
+            entry.flow_label.tooltip_text = tr("brm_port_after_reload_tooltip")
+            entry.flow_label.mouse_filter = Control.MOUSE_FILTER_PASS
+            entry.flow_label.add_theme_color_override("font_color", UI.COLOR_WARNING)
+            continue
         if channel == null:
             continue
         var flow := float(channel.port_flows.get(uid, 0.0))
@@ -762,7 +809,7 @@ func _diagnostic_text(entry: Dictionary) -> String:
     match code:
         Diagnostics.SHORTAGE, Diagnostics.UNUSED:
             return _fmt("brm_diag_" + code, [UI.format_value(float(value))])
-        Diagnostics.CYCLE, Diagnostics.PORT_UNREGISTERED, Diagnostics.MANY_PORTS:
+        Diagnostics.CYCLE, Diagnostics.PORT_UNREGISTERED, Diagnostics.MANY_PORTS, Diagnostics.PENDING_RELOAD:
             return _fmt("brm_diag_" + code, [int(value)])
         _:
             return tr("brm_diag_" + code)
@@ -866,8 +913,9 @@ func _on_connection_changed(_output_id = "", input_id = "") -> void:
 func _keep_free_input(kind: int) -> void:
     if not is_inside_tree():
         return
-    for entry in _ports.values():
-        if int(entry.kind) == kind and not _is_port_connected(entry.container):
+    for port in PortLayout.visible_ports_of(_layout, kind):
+        var entry = _ports.get(str(port.uid))
+        if entry != null and not _is_port_connected(entry.container):
             return
     add_port(kind)
 

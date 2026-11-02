@@ -20,6 +20,9 @@ Un gestionnaire unique, fiable et extensible, qui centralise toutes les ressourc
 
 ## Problèmes connus à traiter
 
+- **Port créé en cours de partie inactif jusqu'au rechargement** (essai alpha.3, 2026-11-03). Contourné en alpha.4 par les ports de réserve. Cause à trouver grâce au diagnostic `Input diff` du journal.
+- **Pénurie affichée en permanence** quand une machine a un gros stock en attente : le besoin Auto (débit + stock à écouler en 10 s) dépasse vite l'offre. Envisager d'afficher séparément le besoin au débit et le besoin avec stock.
+
 - **Entrée déconnectée qui garde une ancienne valeur positive** (signalé le 2026-11-02 ; corrigé pour le hub en alpha.3, entrée sans câble remise à 0 et testée ; reste à vérifier pour les Smart Managers). Si le jeu ne remet pas à 0 le `count` d'une entrée quand son câble est retiré, `_read_supply()` (`scripts/hub/brm_resource_channel.gd`) continue de l'additionner. Le hub distribuerait alors une ressource qui n'arrive plus, ce qui violerait la règle de conservation. Piste : ignorer, ou remettre à 0, toute entrée sans source (`input_id` vide / `input` nul). Vérifier en jeu si le cas se produit, puis ajouter un test de régression. Le même risque existe pour les entrées des Smart Managers (comportement hérité, à vérifier).
 
 ## Prochaines étapes

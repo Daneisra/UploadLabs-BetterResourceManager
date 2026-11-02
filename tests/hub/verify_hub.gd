@@ -478,13 +478,19 @@ func test_uncapped() -> void:
 
 func test_dynamic_ports() -> void:
     var layout := Layout.default_layout()
-    check(Layout.ports_of(layout, Layout.Kind.CPU_INPUT).size() == 1, "default layout has one port of each kind")
+    for kind in [Layout.Kind.CPU_INPUT, Layout.Kind.CPU_OUTPUT, Layout.Kind.GPU_INPUT, Layout.Kind.GPU_OUTPUT]:
+        check(Layout.visible_ports_of(layout, kind).size() == 1, "default layout shows one port of kind %d" % kind)
+        check(Layout.spare_ports_of(layout, kind).size() == Layout.spare_target(kind), "default layout keeps spares of kind %d" % kind)
+    var spare_uid := Layout.reveal_spare(layout, Layout.Kind.CPU_INPUT)
+    check(spare_uid == "cpu_in_2" and Layout.visible_ports_of(layout, Layout.Kind.CPU_INPUT).size() == 2, "revealing a spare shows the next prepared port")
+    check(Layout.top_up_spares(layout) == 1, "top-up replaces the revealed spare")
     var second := Layout.add_port(layout, Layout.Kind.CPU_INPUT)
     var third := Layout.add_port(layout, Layout.Kind.CPU_INPUT)
-    check(second == "cpu_in_2" and third == "cpu_in_3", "uids are sequential per kind")
+    check(int(third.split("_")[2]) == int(second.split("_")[2]) + 1, "uids are sequential per kind (%s, %s)" % [second, third])
     check(Layout.remove_port(layout, second), "port removed")
     var fourth := Layout.add_port(layout, Layout.Kind.CPU_INPUT)
-    check(fourth == "cpu_in_4", "a removed uid is never reused")
+    check(int(fourth.split("_")[2]) == int(third.split("_")[2]) + 1, "a removed uid is never reused (%s)" % fourth)
+    check(Layout.set_spare(layout, fourth, true) and Layout.is_spare(Layout.get_port(layout, fourth)), "a port can return to the spares")
     check(Layout.find_port(layout, second) < 0, "removed port is gone")
     for _i in range(300):
         Layout.add_port(layout, Layout.Kind.GPU_OUTPUT)
@@ -562,7 +568,8 @@ func test_port_persistence() -> void:
     check(uids(restored.layout) == uids(layout), "uids and order survive save/reload")
     check(Layout.get_port(restored.layout, "gpu_out_3").label == "AI Trainer", "label survives")
     near(float(Layout.get_port(restored.layout, "gpu_out_3").settings.weight), 2.5, "settings survive")
-    check(Layout.add_port(restored.layout, Layout.Kind.GPU_OUTPUT) == "gpu_out_4", "counter survives: no uid reuse after reload")
+    check(Layout.add_port(restored.layout, Layout.Kind.GPU_OUTPUT) == "gpu_out_%d" % int(layout.next.gpu_out), "counter survives: no uid reuse after reload")
+    check(Layout.spare_ports_of(restored.layout, Layout.Kind.GPU_INPUT).size() == Layout.SPARE_INPUTS, "spare flags survive save/reload")
 
     # JSON round trip turns ints into floats; still accepted.
     var json := Layout.from_save(JSON.parse_string(JSON.stringify(saved)))

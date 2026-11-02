@@ -24,13 +24,65 @@ const MAX_LABEL_LENGTH := 32
 # warns long before this (see SOFT_PORT_WARNING).
 const PORTS_PER_KIND_GUARD := 256
 const SOFT_PORT_WARNING := 64
+# Hidden ports kept ready per kind. In Upload Labs 3.0.12 a port created after
+# the window was set up stays at 0 until the save is reloaded, while ports
+# that exist from the start work (observed in alpha.3). Revealing a spare
+# therefore works at once; spares are topped up again on every load.
+const SPARE_INPUTS := 8
+const SPARE_OUTPUTS := 4
 
 
 static func default_layout() -> Dictionary:
     var layout := {"format": FORMAT, "ports": [], "next": {}}
     for kind in [Kind.CPU_INPUT, Kind.CPU_OUTPUT, Kind.GPU_INPUT, Kind.GPU_OUTPUT]:
         add_port(layout, kind)
+    top_up_spares(layout)
     return layout
+
+
+static func spare_target(kind: int) -> int:
+    return SPARE_INPUTS if is_input(kind) else SPARE_OUTPUTS
+
+
+static func is_spare(port: Dictionary) -> bool:
+    return bool(port.get("spare", false))
+
+
+static func visible_ports_of(layout: Dictionary, kind: int) -> Array:
+    return ports_of(layout, kind).filter(func(port): return not is_spare(port))
+
+
+static func spare_ports_of(layout: Dictionary, kind: int) -> Array:
+    return ports_of(layout, kind).filter(func(port): return is_spare(port))
+
+
+# Adds hidden spares until every kind has its target. Returns how many.
+static func top_up_spares(layout: Dictionary) -> int:
+    var added := 0
+    for kind in [Kind.CPU_INPUT, Kind.CPU_OUTPUT, Kind.GPU_INPUT, Kind.GPU_OUTPUT]:
+        var missing := spare_target(kind) - spare_ports_of(layout, kind).size()
+        for _i in range(missing):
+            if add_port(layout, kind, true).is_empty():
+                break
+            added += 1
+    return added
+
+
+# Turns the first spare of a kind into a visible port; "" when none is left.
+static func reveal_spare(layout: Dictionary, kind: int) -> String:
+    for port in layout.get("ports", []):
+        if int(port.get("kind", -1)) == kind and is_spare(port):
+            port.spare = false
+            return str(port.uid)
+    return ""
+
+
+static func set_spare(layout: Dictionary, uid: String, spare: bool) -> bool:
+    var index := find_port(layout, uid)
+    if index < 0:
+        return false
+    layout.ports[index].spare = spare
+    return true
 
 
 static func empty_layout() -> Dictionary:
@@ -64,7 +116,7 @@ static func is_valid_kind(kind) -> bool:
     return (kind is int or kind is float) and int(kind) >= Kind.CPU_INPUT and int(kind) <= Kind.GPU_OUTPUT
 
 
-static func add_port(layout: Dictionary, kind: int) -> String:
+static func add_port(layout: Dictionary, kind: int, spare: bool = false) -> String:
     if not is_valid_kind(kind):
         return ""
     if ports_of(layout, kind).size() >= PORTS_PER_KIND_GUARD:
@@ -78,7 +130,7 @@ static func add_port(layout: Dictionary, kind: int) -> String:
         uid = "%s_%d" % [prefix, number]
     next[prefix] = number + 1
 
-    var port := {"uid": uid, "kind": kind, "label": ""}
+    var port := {"uid": uid, "kind": kind, "label": "", "spare": spare}
     if is_output(kind):
         port["settings"] = default_settings()
     layout.get_or_add("ports", []).append(port)
@@ -184,7 +236,7 @@ static func from_save(value) -> Dictionary:
         seen[uid] = true
         counts[kind] = int(counts.get(kind, 0)) + 1
 
-        var port := {"uid": uid, "kind": kind, "label": sanitize_label(raw_port.get("label", ""))}
+        var port := {"uid": uid, "kind": kind, "label": sanitize_label(raw_port.get("label", "")), "spare": bool(raw_port.get("spare", false))}
         if is_output(kind):
             port["settings"] = sanitize_settings(raw_port.get("settings", {}))
         layout.ports.append(port)
