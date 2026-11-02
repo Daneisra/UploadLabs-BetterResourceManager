@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.1.0-alpha.2
+
+Corrections après le premier essai en jeu de l'alpha.1 et la revue Codex du commit `3092e8d`.
+
+### Corrigé
+
+- Erreurs `Parameter "canvas_item" is null` au survol et au clic des boutons du hub : le bouton ne remplace plus le `_ready()` natif de `DesktopButton` (même correction pour le bouton Base des Smart Managers).
+- Affichage compact : la fenêtre se réduit réellement (la racine est un `VBoxContainer` qui ne rétrécit pas seule), le contenu ne déborde plus du cadre, le bouton Mode ne s'étire plus.
+- Ports d'un nouveau hub créés avant la collecte des conteneurs par le jeu (plus d'ajout tardif).
+- Machine branchée sur deux sorties : seule la sortie propriétaire (la première active) l'alimente ; une sortie coupée ou plafonnée ne laisse plus rien passer par un second câble.
+- Valeurs finies très grandes : plus de débordement vers INF ni de part NaN dans l'allocateur ; une offre totale infinie est refusée dans tous les modes, y compris Graphe.
+- Mode Graphe rétabli quand le hub revient dans l'arbre de scène.
+- Somme de conservation calculée dans un ordre canonique (déterminisme exact).
+
+### Ajouté
+
+- Un hub qui n'alimente que des cibles non bornées le signale au gestionnaire en amont, qui lui transmet les restes au lieu de 0.
+- Quand la dernière entrée libre d'une ressource est branchée, une nouvelle entrée libre est ajoutée automatiquement (une entrée native n'accepte qu'un câble).
+- Message plus clair quand un Smart Manager en amont n'envoie rien faute de besoin en sortie.
+- La sonde liste aussi les gestionnaires branchés sur `window_moved`, `register_resource`, `window_created` et `window_initialized`.
+
 ## v0.1.0-alpha.1
 
 Première alpha de Better Resource Manager, fork d'Adaptive Smart Manager v0.1.0-test23. Tests isolés réussis ; validation en jeu en attente.

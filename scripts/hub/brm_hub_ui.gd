@@ -43,6 +43,7 @@ static func button(text: String, tooltip: String, callback: Callable, toggle: bo
     node.tooltip_text = tooltip
     node.toggle_mode = toggle
     node.focus_mode = Control.FOCUS_NONE
+    node.theme_type_variation = &"ItemButton"
     node.add_theme_font_size_override("font_size", FONT_NORMAL)
     node.custom_minimum_size = Vector2(36, 32)
     if toggle:

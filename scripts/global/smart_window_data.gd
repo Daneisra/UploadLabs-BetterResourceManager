@@ -162,6 +162,14 @@ func get_provided_resource() -> String:
     return ""
 
 
+# A chained Better Resource Hub that feeds uncapped machines (sellers,
+# miners...) can use more than its finite demand.
+func is_uncapped_manager() -> bool:
+    if role != SmartWindowRoles.MANAGER or not window.has_method("get_resource_uncapped"):
+        return false
+    return bool(window.get_resource_uncapped(get_provided_resource()))
+
+
 func _manager_demand() -> float:
     # A Better Resource Hub manages two independent resources; ask it for the
     # one this manager actually supplies instead of a mixed total.

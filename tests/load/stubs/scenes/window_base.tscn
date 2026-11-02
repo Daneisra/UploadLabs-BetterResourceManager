@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://stubs/window_base.gd" id="1_base"]
 
-[node name="WindowBase" type="Control" unique_id=1571110532]
+[node name="WindowBase" type="VBoxContainer" unique_id=1571110532]
 script = ExtResource("1_base")
 
 [node name="TitlePanel" type="PanelContainer" parent="." unique_id=1100000001]

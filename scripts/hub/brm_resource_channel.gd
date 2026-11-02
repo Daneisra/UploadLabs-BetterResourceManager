@@ -57,6 +57,9 @@ var _wdata: Dictionary = {}
 var _window_port: Dictionary = {}
 var _port_windows: Dictionary = {}
 var _loop_containers: Array = []
+# Wires from a port to a machine owned by another port: kept at 0 so that a
+# disabled or capped port never leaks supply through a second connection.
+var _idle_containers: Array = []
 var _graph_truncated := false
 var _tracker := DemandTracker.new()
 var _legacy_state: Dictionary = {"wdata": {}}
@@ -85,6 +88,10 @@ func get_finite_demand() -> float:
     return float(stats.get("finite_demand", 0.0))
 
 
+func has_uncapped_targets() -> bool:
+    return int(stats.get("uncapped", 0)) > 0
+
+
 func get_targets() -> Dictionary:
     return _wdata
 
@@ -107,7 +114,7 @@ func tick(mode: int) -> void:
         if refresh_roles:
             data.update()
 
-    for container in _loop_containers:
+    for container in _loop_containers + _idle_containers:
         if is_instance_valid(container):
             container.count = 0.0
 
@@ -150,6 +157,10 @@ func _read_supply() -> Dictionary:
             invalid += 1
             continue
         total += maxf(value, 0.0)
+    if not is_finite(total):
+        # Finite inputs can still add up to INF; never distribute that.
+        invalid += 1
+        total = 0.0
     return {"value": total, "connected": connected, "invalid": invalid}
 
 
@@ -272,6 +283,7 @@ func _window_request(name: String, data, smooth: bool) -> Dictionary:
             demand = data.get_auto_demand()
             if smooth:
                 demand = _tracker.smooth(name, demand)
+            uncapped = data.is_uncapped_manager()
         SmartWindowData.SmartWindowRoles.STORAGE:
             uncapped = true
     return {"key": name, "demand": demand, "uncapped": uncapped}
@@ -401,33 +413,47 @@ func _rebuild() -> void:
     _window_port.clear()
     _port_windows.clear()
     _loop_containers.clear()
+    _idle_containers.clear()
 
+    # A machine wired to several ports belongs to one of them: the first
+    # enabled port reaching it (or the first port if all are off). Only that
+    # port's wires carry its share, so each port's settings really bound what
+    # flows through it.
+    var reachable: Array = []
     for port in outputs:
         var container = port.container
-        var names: Array = []
-        _port_windows[port.uid] = names
-        if not is_instance_valid(container):
-            continue
+        var targets: Array = []
+        _port_windows[port.uid] = []
+        if is_instance_valid(container):
+            for looping_target in _looping_of(container):
+                _loop_containers.append(looping_target)
+            for target in _targets_of(container):
+                var target_window = BRMUtils.get_parent_window(target)
+                if target_window == null or not is_instance_valid(target_window):
+                    continue
+                if target_window == hub or loop_windows.has(str(target_window.name)):
+                    # Sending this resource there would bring it back into the hub.
+                    _loop_containers.append(target)
+                    continue
+                targets.append(target)
+                var name := str(target_window.name)
+                windows[name] = target_window
+                var enabled := bool(port.settings.get("enabled", true))
+                var current = _window_port.get(name)
+                if current == null or (enabled and not _port_enabled(current)):
+                    _window_port[name] = port.uid
+        reachable.append(targets)
 
-        for looping_target in _looping_of(container):
-            _loop_containers.append(looping_target)
-
-        for target in _targets_of(container):
-            var target_window = BRMUtils.get_parent_window(target)
-            if target_window == null or not is_instance_valid(target_window):
+    for index in range(outputs.size()):
+        var uid: String = outputs[index].uid
+        for target in reachable[index]:
+            var name := str(BRMUtils.get_parent_window(target).name)
+            if _window_port.get(name) != uid:
+                _idle_containers.append(target)
                 continue
-            if target_window == hub or loop_windows.has(str(target_window.name)):
-                # Sending this resource there would bring it back into the hub.
-                _loop_containers.append(target)
-                continue
-            var name := str(target_window.name)
-            windows[name] = target_window
             window_containers.get_or_add(name, []).append(target.id)
-            if not _window_port.has(name):
-                # A machine wired to several ports belongs to the first one;
-                # its allocation is still split over all its wired inputs.
-                _window_port[name] = port.uid
-                names.append(name)
+            if not _port_windows[uid].has(name):
+                _port_windows[uid].append(name)
 
     var rebuilt: Dictionary = {}
     for name in windows.keys():
@@ -479,6 +505,13 @@ func _upstream_windows() -> Dictionary:
         if is_instance_valid(window):
             names[str(window.name)] = true
     return names
+
+
+func _port_enabled(uid: String) -> bool:
+    for port in outputs:
+        if port.uid == uid:
+            return bool(port.settings.get("enabled", true))
+    return false
 
 
 static func _targets_of(container) -> Array:

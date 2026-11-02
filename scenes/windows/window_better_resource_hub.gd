@@ -86,14 +86,22 @@ var _ui_counter := 0
 var _post_ready_done := false
 var _unregistered: Dictionary = {}
 var _open_settings: Dictionary = {}
+var _relayout_pending := false
+# Ports the game did not collect itself and that had to be appended to
+# containers (tests expect 0 for hubs created normally).
+var late_appended_ports := 0
 
 
-func _ready() -> void:
+func _ensure_ports() -> void:
     if not _layout_ready:
         _layout = PortLayout.default_layout()
         _layout_ready = true
     _ensure_sections()
     _sync_port_nodes()
+
+
+func _ready() -> void:
+    _ensure_ports()
 
     super()
 
@@ -136,6 +144,12 @@ func tick(_delta: float) -> void:
 func get_resource_demand(resource: String) -> float:
     var channel = _channels.get(resource)
     return channel.get_finite_demand() if channel != null else 0.0
+
+
+# Read by upstream managers (SmartWindowData.is_uncapped_manager).
+func get_resource_uncapped(resource: String) -> bool:
+    var channel = _channels.get(resource)
+    return channel != null and channel.has_uncapped_targets()
 
 
 func get_channel(resource: String):
@@ -311,6 +325,7 @@ func _verify_ports() -> void:
             continue
         if "containers" in self and not containers.has(container):
             containers.append(container)
+            late_appended_ports += 1
             print("%s Port '%s' was missing from window containers; added." % [LOG_PREFIX, uid])
         if resources is Dictionary and "id" in container and resources.get(container.id) != container:
             _unregistered[uid] = true
@@ -599,6 +614,10 @@ func _apply_compact() -> void:
             continue
         section.get_node("AddInput").visible = not _compact
         section.get_node("AddOutput").visible = not _compact
+    # Update what compact mode hides in the summary/status first, so the
+    # resize below measures the final content.
+    if not _channels.is_empty():
+        _refresh_ui()
     _relayout()
 
 
@@ -712,15 +731,22 @@ func _diagnostic_text(entry: Dictionary) -> String:
             return tr("brm_diag_" + code)
 
 
+# The window root is a VBoxContainer: it grows with its content but never
+# shrinks by itself. Wait until minimum sizes have propagated (two frames),
+# then ask for the smallest height (Control clamps to the minimum size) and
+# let the desktop redraw this window's connection lines.
 func _relayout() -> void:
+    if _relayout_pending or not is_inside_tree():
+        return
+    _relayout_pending = true
+    await get_tree().process_frame
+    await get_tree().process_frame
+    _relayout_pending = false
     if not is_inside_tree():
         return
-    # Let containers shrink back after a port was removed, then tell the
-    # desktop to redraw this window's connection lines.
-    size.y = 0.0
-    call_deferred("reset_size")
+    size = Vector2(size.x, 0.0)
     if Signals.has_signal("window_moved"):
-        Signals.call_deferred("emit_signal", "window_moved", self)
+        Signals.emit_signal("window_moved", self)
 
 
 # --- Event handlers ---------------------------------------------------------
@@ -790,8 +816,23 @@ func _on_topology_changed() -> void:
         channel.mark_dirty()
 
 
-func _on_connection_changed(_output_id = "", _input_id = "") -> void:
+func _on_connection_changed(_output_id = "", input_id = "") -> void:
     _on_topology_changed()
+    # An input takes a single wire. When the last free input of a resource
+    # gets connected, offer a new free one right away.
+    for entry in _ports.values():
+        if PortLayout.is_input(entry.kind) and is_instance_valid(entry.container) and str(entry.container.id) == str(input_id):
+            call_deferred("_keep_free_input", int(entry.kind))
+            return
+
+
+func _keep_free_input(kind: int) -> void:
+    if not is_inside_tree():
+        return
+    for entry in _ports.values():
+        if int(entry.kind) == kind and not _is_port_connected(entry.container):
+            return
+    add_port(kind)
 
 
 func _on_window_deleted(_window = null) -> void:
@@ -825,13 +866,20 @@ func _dispose_graph() -> void:
 
 
 func _enter_tree() -> void:
-    if is_node_ready():
-        _connect_runtime_signals()
-        _on_topology_changed()
+    if not is_node_ready():
+        # Before the game's own _ready collects this window's containers:
+        # a new hub (no saved layout) builds its default ports here.
+        _ensure_ports()
+        return
+    _connect_runtime_signals()
+    _apply_mode()
+    _on_topology_changed()
 
 
 func _exit_tree() -> void:
     _dispose_graph()
+    for channel in _channels.values():
+        channel.graph = null
     _disconnect_runtime_signals()
 
 

@@ -4,7 +4,14 @@ extends DesktopButton
 # interaction rules as toggle_desktop_button.gd: a drag never clicks, and the
 # control stays clickable at every desktop zoom level.
 
-func _ready() -> void:
+# No _ready override: the game's DesktopButton keeps its own _ready (skipping
+# it left a null canvas item, "Parameter canvas_item is null" on hover/press).
+# A super() call is not an option either: it fails to compile if the parent
+# script happens not to define _ready. NOTIFICATION_READY reaches every
+# script level without replacing anything.
+func _notification(what: int) -> void:
+    if what != NOTIFICATION_READY:
+        return
     var callback := Callable(self, "_on_distance_level_set")
     if not Signals.distance_level_set.is_connected(callback):
         Signals.distance_level_set.connect(callback)

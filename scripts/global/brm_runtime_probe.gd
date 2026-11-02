@@ -54,6 +54,18 @@ static func run_once(hub: Node, sample_input: Node, sample_output: Node) -> void
                     break
         names.sort()
         lines.append("signals=%s" % ",".join(names))
+        for signal_name in ["window_moved", "register_resource", "window_created", "window_initialized"]:
+            if not signals.has_signal(signal_name):
+                continue
+            var handlers: Array[String] = []
+            for connection in signals.get_signal_connection_list(signal_name):
+                var callable: Callable = connection.get("callable", Callable())
+                var target = callable.get_object()
+                var owner := "?"
+                if target != null:
+                    owner = _script_path(target) if target is Node else str(target.get_class())
+                handlers.append("%s.%s" % [owner, str(callable.get_method())])
+            lines.append("%s handlers=%s" % [signal_name, ",".join(handlers)])
 
     for line in lines:
         print("%s %s" % [PREFIX, line])

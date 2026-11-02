@@ -138,7 +138,7 @@ text = "Better Resource Hub"
 
 [node name="OptionButton" type="OptionButton" parent="." index="1" unique_id=851881269]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 1
 theme = SubResource("Theme_6kkdg")
 theme_type_variation = &"stmOptionButton"
 alignment = 1

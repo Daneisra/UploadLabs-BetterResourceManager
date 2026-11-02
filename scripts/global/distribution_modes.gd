@@ -301,9 +301,11 @@ static func distribution_auto(value: float, state: Dictionary) -> void:
 
     for name in state.consumers + state.managers:
         var raw := float(auto_demands.get(name, 0.0))
+        var data = state.wdata[name]
         requests.append({
             "key": str(name),
             "demand": tracker.smooth(str(name), raw) if tracker != null else raw,
+            "uncapped": data.has_method("is_uncapped_manager") and data.is_uncapped_manager(),
         })
     for name in state.storages:
         requests.append({

@@ -1,5 +1,45 @@
 # Résultats des tests
 
+## v0.1.0-alpha.2 — 2026-11-02 (tests isolés)
+
+| Suite | Résultat |
+|---|---|
+| `tests/load` | 149 contrôles, 0 échec (dont : ports d'un nouveau hub collectés par la fenêtre sans ajout tardif, avec une doublure `WindowBase` qui collecte via `@onready` comme le jeu ; l'affichage compact réduit la fenêtre et l'affichage complet la rétablit ; entrée libre ajoutée quand la dernière est branchée ; mode Graphe reconstruit après réinsertion ; scripts compilables même si `DesktopButton` n'a pas de `_ready`) |
+| `tests/hub` | 320 contrôles, 0 échec (section 20 : régressions de la revue Codex) |
+| `tests/demand`, `tests/unlocks` | 138 et 158, 0 échec |
+| `tests/translations` | 73 messages × 2 langues |
+
+Constats de la revue Codex (commit `3092e8d`) et suite donnée :
+
+| # | Constat | Suite |
+|---|---|---|
+| 1 | une sortie coupée ou plafonnée laissait passer du CPU/GPU par le second câble d'une machine branchée sur deux sorties | corrigé, testé |
+| 2 | débordement vers INF / NaN avec des valeurs finies proches de 1e308 | corrigé (plafond 1e300, demandes normalisées), testé |
+| 3 | un hub en aval n'alimentant que des cibles non bornées recevait 0 de l'amont | corrigé (indicateur non borné remonté), testé |
+| 4 | offre totale infinie distribuée en mode Graphe | corrigé, testé dans les 5 modes |
+| 5 | mode Graphe perdu après sortie puis retour dans l'arbre | corrigé, testé |
+| 6 | redimensionnement compact calculé avant la mise à jour du contenu | corrigé, testé |
+| 7 | `DesktopButton` sans `_ready` natif (hypothèse sur l'API du jeu) | corrigé par `NOTIFICATION_READY` ; effet sur les erreurs `canvas_item` à vérifier en jeu |
+| 8 | ordre des requêtes influençant la correction de conservation | corrigé, testé |
+
+## v0.1.0-alpha.1 — essai en jeu du 2026-11-02 (Jérémy, partie principale)
+
+Sources : captures d'écran et journaux `modloader.log` / `godot.log`.
+
+| Point | Résultat |
+|---|---|
+| Chargement du mod | réussi : prévol de 26 ressources, 3 fenêtres enregistrées, 4 alias actifs, aucune erreur de script BRM |
+| Gestionnaires existants (6 Smart Thread, 1 Smart GPU) | repris et connectés, modes changeables (Ratio, Demande, Graphe, Auto) |
+| Better Resource Hub dans Add Node | présent, posable |
+| Ports connectables | oui, y compris les ports ajoutés en cours de partie (inscrits par le jeu lui-même) |
+| Plusieurs sources sur une même entrée | impossible : une entrée native n'accepte qu'un câble ; il faut un port par source |
+| Smart GPU Manager, chaîne AI (texte), mode Demande | AI Trainer 589 EHz, ~736 k neurones/s ; surplus de ~5,23 ZHz envoyé au Text Generator, détecté comme cible non bornée |
+| Smart GPU Manager, chaîne AI (programme), mode Auto | AI Trainer ~5,23 ZHz |
+| Affichage | défauts : la fenêtre ne rétrécit pas en compact, bouton Mode étiré, contenu hors du cadre ; 662 erreurs `canvas_item is null` liées aux boutons du hub |
+| Entrées du hub alimentées par des Smart Thread Managers | 0 Hz tant qu'aucune machine n'est branchée sur les sorties : l'amont n'envoie que le besoin déclaré par le hub |
+| Sauvegarde/rechargement d'un hub | **non testé** (aucun hub dans la sauvegarde au moment de la lecture) |
+| Probe | fenêtre = `VBoxContainer` ; tous les membres attendus des conteneurs présents ; `desktop.resources` est un dictionnaire ; les conteneurs créés dans le `_ready` de la sous-classe ne sont pas collectés par la fenêtre |
+
 ## v0.1.0-alpha.1 — 2026-11-02
 
 Environnement : Windows 10 Pro 19045, Godot `4.7.2.stable.official.ed1daf0bf` (console, mode headless), PowerShell 5.1. Commit testé : `9f50ad2`.

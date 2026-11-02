@@ -32,6 +32,10 @@ const AUTO_PRIORITY_BASE := 2.0
 const PRIORITY_MIN := -10
 const PRIORITY_MAX := 10
 const WEIGHT_MAX := 1000000.0
+# Finite inputs larger than this are clamped so that sums of a few thousand
+# requests and weight * demand products can never overflow to INF (an INF
+# total would turn ratios into 0 and shares into NaN).
+const VALUE_CAP := 1.0e300
 
 
 static func allocate(supply: float, raw_requests: Array, policy: int) -> Dictionary:
@@ -41,6 +45,7 @@ static func allocate(supply: float, raw_requests: Array, policy: int) -> Diction
         if is_nan(budget) or is_inf(budget):
             invalid += 1
         budget = 0.0
+    budget = minf(budget, VALUE_CAP)
 
     var given: Dictionary = {}
     var requests: Array = []
@@ -97,7 +102,7 @@ static func sanitize_request(raw) -> Dictionary:
         if demand > 0.0:
             uncapped = true
         demand = 0.0
-    demand = maxf(demand, 0.0)
+    demand = clampf(demand, 0.0, VALUE_CAP)
 
     var weight := float(source.get("weight", 1.0))
     if not is_finite(weight):
@@ -110,12 +115,14 @@ static func sanitize_request(raw) -> Dictionary:
         invalid += 1
         maximum = INF
     maximum = maxf(maximum, 0.0)
+    if is_finite(maximum):
+        maximum = minf(maximum, VALUE_CAP)
 
     var minimum := float(source.get("min", 0.0))
     if not is_finite(minimum):
         invalid += 1
         minimum = 0.0
-    minimum = clampf(minimum, 0.0, maximum)
+    minimum = clampf(minimum, 0.0, minf(maximum, VALUE_CAP))
 
     return {
         "key": str(source.get("key", "")),
@@ -279,13 +286,19 @@ static func _fill_surplus(budget: float, requests: Array, given: Dictionary, sof
         return 0.0
     var items: Array = []
     var weighted_total := 0.0
+    # Demands are normalised by the largest one: weight * demand stays within
+    # [0, weight] instead of overflowing for very large demands.
+    var largest := 0.0
+    for request in requests:
+        if request.enabled:
+            largest = maxf(largest, float(request.demand))
     for request in requests:
         if not request.enabled or (request.uncapped and request.demand <= 0.0):
             continue
         var base := 1.0
         if not ignore_weight:
             base = _auto_weight(request) if soft_priority else request.weight
-        var weight: float = base * request.demand
+        var weight: float = base * (float(request.demand) / largest) if largest > 0.0 else 0.0
         weighted_total += weight
         items.append({"key": request.key, "cap": request.max - given[request.key], "weight": weight, "base": base})
 
@@ -298,8 +311,12 @@ static func _fill_surplus(budget: float, requests: Array, given: Dictionary, sof
 
 
 static func _enforce_conservation(given: Dictionary, supply: float) -> float:
+    # Canonical key order: the rounding of the sum, and therefore whether the
+    # correction below runs, must not depend on the order requests came in.
+    var keys := given.keys()
+    keys.sort()
     var total := 0.0
-    for key in given.keys():
+    for key in keys:
         var value := float(given[key])
         if not is_finite(value) or value < 0.0:
             value = 0.0
@@ -311,7 +328,7 @@ static func _enforce_conservation(given: Dictionary, supply: float) -> float:
         # real supply. Never invent CPU/GPU.
         var factor := (supply / total) * (1.0 - 1e-12)
         total = 0.0
-        for key in given.keys():
+        for key in keys:
             given[key] = float(given[key]) * factor
             total += float(given[key])
     return total

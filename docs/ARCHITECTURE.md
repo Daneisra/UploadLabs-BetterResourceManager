@@ -51,7 +51,7 @@ ports d'entrée ──Σ count──> réserve (CPU ou GPU)
 - **Topologie** (cibles, rôles, boucles) : recalculée seulement quand un port change (`update_connections`), qu'une connexion est créée ou supprimée, qu'une fenêtre est supprimée, ou toutes les 300 itérations par sécurité.
 - **À chaque itération** : lecture de l'offre et des demandes. Les rôles et les `required` sont rafraîchis toutes les 5 itérations.
 - **Cache** : si l'offre est *exactement* identique et qu'aucune demande ni réglage n'a varié de plus de 0,1 %, l'allocation précédente est réappliquée. L'égalité stricte sur l'offre interdit de réutiliser un résultat calculé pour une offre plus grande.
-- Une machine branchée sur plusieurs sorties appartient à la première ; sa part est répartie sur toutes ses entrées branchées.
+- Une machine branchée sur plusieurs sorties appartient à la première sortie **active** qui l'atteint. Seuls les câbles de cette sortie la servent ; ceux des autres sorties restent à 0, si bien qu'une sortie coupée ou plafonnée ne laisse rien passer par un second câble.
 
 ## Allocateur (`scripts/core/brm_allocator.gd`)
 
@@ -100,6 +100,14 @@ Correction dans BRM : demande Auto avec stock en attente (4), et surplus rendu a
 - Copie de secours par port : `brm_port_state` (`id`, `outputs_id`), réappliquée à la création du port. `export()` (copier/coller) ne la contient pas, pour qu'une copie obtienne de nouveaux identifiants.
 - Garde-fou contre une sauvegarde corrompue : 256 ports par type au maximum. Ce n'est pas une limite de jeu ; l'interface suggère l'affichage compact dès 64 ports.
 
+## Hub en aval d'un gestionnaire
+
+Un hub déclare à l'amont, par ressource, sa demande finie (`get_resource_demand`) et s'il alimente des cibles non bornées (`get_resource_uncapped`). Un Smart Manager en Ratio/Demande/Graphe traite un hub sans demande finie mais avec des cibles non bornées comme une cible non bornée (il reçoit les restes). En Auto et dans un autre hub, la requête porte les deux informations. Sans aucune machine branchée sur ses sorties, un hub reçoit 0 d'un Smart Manager : c'est voulu.
+
+## Une entrée, un câble
+
+Une entrée native n'accepte qu'une connexion. Quand la dernière entrée libre d'une ressource est branchée, le hub en ajoute une automatiquement.
+
 ## Ports ajoutés en cours de partie
 
 Un port créé après `_ready` n'existait pas quand la fenêtre a collecté ses conteneurs. Le hub l'ajoute à `containers`, lui attribue un identifiant s'il n'en a pas, et l'inscrit dans `Globals.desktop.resources` s'il n'y est pas. Puis il vérifie l'inscription et affiche « port non reconnu » en cas d'échec, plutôt que de montrer un port qui ne serait pas connectable. **Ce chemin dépend d'API non publiques et doit être validé en jeu** (voir la sonde).
@@ -117,11 +125,14 @@ Tirées du code public d'ASM, de kuuk, de BetterSplitters, de Where Should I Con
 | `filename` d'une fenêtre est relatif à `res://scenes/windows/` | sauvegarde, kuuk, BetterSplitters | confirmé (sauvegarde) |
 | Champs sauvegardés appliqués avant `_ready` | commentaire et code de kuuk | probable |
 | `container_data` indexé par chemin de nœud | sauvegarde | confirmé (sauvegarde) |
-| `ResourceContainer.transfer`, `looping`, `input`, `outputs_id`, `input_id`, `update_connections()`, `tick()` | ASM, Where Should I Connect | utilisés par des mods qui fonctionnent |
-| `load()` renvoie l'entrée du cache même si un fichier existe au même chemin | moteur Godot 4.7.2, test de chargement | confirmé hors jeu ; à confirmer en jeu |
+| `ResourceContainer.transfer`, `looping`, `input`, `outputs_id`, `input_id`, `update_connections()`, `tick()` | ASM, Where Should I Connect | confirmé par la sonde en jeu |
+| `load()` renvoie l'entrée du cache même si un fichier existe au même chemin | moteur Godot 4.7.2, test de chargement, essai en jeu | confirmé (les 7 gestionnaires kuuk se chargent en BRM) |
 | Mod Loader monte les ZIP désactivés | source ML 7.0.1 | confirmé (source) |
 | Mod Loader n'applique pas `incompatibilities` | source ML 7.0.1 | confirmé (source) |
-| Un port créé en cours de partie devient connectable | — | **non vérifié** |
+| Un port créé en cours de partie devient connectable | essai en jeu alpha.1 | confirmé (le jeu l'inscrit lui-même) |
+| La racine d'une fenêtre est un `VBoxContainer` | sonde, alpha.1 | confirmé |
+| Les conteneurs sont collectés avant le corps du `_ready` de la sous-classe | sonde, alpha.1 | confirmé : un nouveau hub crée ses ports dans `_enter_tree` |
+| `DesktopButton` initialise son dessin dans `_ready` | erreurs `canvas_item` | probable ; ne jamais remplacer son `_ready` (réglages via `NOTIFICATION_READY`) |
 
 ## Limites confirmées
 

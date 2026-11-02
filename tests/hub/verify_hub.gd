@@ -69,6 +69,7 @@ func run() -> void:
     section("17 determinism", test_determinism)
     section("18 diagnostics", test_diagnostics)
     section("19 performance", test_performance)
+    section("20 review regressions", test_review_regressions)
 
     for node in fixtures:
         if is_instance_valid(node):
@@ -818,6 +819,113 @@ func test_performance() -> void:
     channel.tick(Channel.Mode.AUTO)
     check(channel.stats.allocated <= channel.stats.supply, "tiny supply drop is recomputed, never over-allocated")
     check(channel.stats.allocated < before, "allocation follows the smaller supply")
+
+
+# --- 20 review regressions (Codex review of 3092e8d) -------------------------
+
+class UncappedHub extends WindowBase:
+    var demand := 0.0
+    var uncapped := true
+
+    func get_resource_demand(_resource: String) -> float:
+        return demand
+
+    func get_resource_uncapped(_resource: String) -> bool:
+        return uncapped
+
+
+func test_review_regressions() -> void:
+    # 1. A machine wired to two ports: a disabled or zero-capped port never
+    #    leaks supply through its wire; the machine stays served by the other.
+    var hub := make_window("hub_two_wires")
+    var machine := make_consumer("two_wire_machine", CPU, 100.0, 1.0, 1.0, 0.0)
+    var second_speed := add_container(machine.window, CPU, 1, true)
+    machine.data.set_containers([machine.speed.id, second_speed.id])
+    var out_a := hub_output(hub, CPU)
+    var out_b := hub_output(hub, CPU)
+    wire(out_a, machine.speed)
+    wire(out_b, second_speed)
+    var supply := hub_input(hub, CPU, 100.0)
+    var off := Layout.default_settings()
+    off.enabled = false
+    var channel := Channel.new(CPU, hub)
+    channel.set_ports([{"uid": "in", "container": supply}], [
+        {"uid": "a", "container": out_a, "settings": Layout.default_settings()},
+        {"uid": "b", "container": out_b, "settings": off},
+    ])
+    channel.tick(Channel.Mode.AUTO)
+    near(second_speed.count, 0.0, "disabled port carries nothing to a machine owned by another port")
+    near(machine.speed.count, 100.0, "owning port delivers the whole share")
+    channel.set_ports([{"uid": "in", "container": supply}], [
+        {"uid": "a", "container": out_a, "settings": off},
+        {"uid": "b", "container": out_b, "settings": Layout.default_settings()},
+    ])
+    channel.tick(Channel.Mode.AUTO)
+    near(machine.speed.count, 0.0, "disabled first port no longer feeds the machine")
+    near(second_speed.count, 100.0, "machine falls back to its enabled port")
+    var capped := Layout.default_settings()
+    capped.max = 30.0
+    channel.set_ports([{"uid": "in", "container": supply}], [
+        {"uid": "a", "container": out_a, "settings": capped},
+        {"uid": "b", "container": out_b, "settings": Layout.default_settings()},
+    ])
+    channel.tick(Channel.Mode.AUTO)
+    check(machine.speed.count + second_speed.count <= 30.0 + 1e-9, "a port's maximum bounds everything its machine receives")
+
+    # 2. Overflowing finite inputs.
+    var ratio := Allocator.allocate(100.0, [req("a", 1e308), req("b", 1e308)], Allocator.Policy.RATIO)
+    near(float(ratio.allocated), 100.0, "Ratio with huge demands still distributes the supply")
+    var auto := Allocator.allocate(1.5e308, [req("a", 1e308, 2.0)], Allocator.Policy.AUTO)
+    check(is_finite(float(auto.allocated)) and float(auto.allocated) > 0.0, "Auto with huge supply and weight stays finite and non-zero")
+    var surplus := Allocator.allocate(1e301, [req("a", 1e299, 1000000.0, 10), req("b", 1e299, 1.0, -10)], Allocator.Policy.AUTO)
+    check(is_finite(float(surplus.allocated)) and float(surplus.allocated) > 0.0, "surplus weights never overflow")
+
+    # 3. A downstream hub that only feeds uncapped machines is not starved.
+    var downstream := UncappedHub.new()
+    downstream.name = "downstream_hub"
+    downstream.add_to_group("window")
+    fixtures.append(downstream)
+    var downstream_in := add_container(downstream, GPU, 1, true)
+    var down_data = WData.new(downstream)
+    down_data.set_containers([downstream_in.id])
+    check(down_data.role == WData.SmartWindowRoles.MANAGER and down_data.is_uncapped_manager(), "hub with uncapped targets is an uncapped manager")
+    var other := make_consumer("other_finite", GPU, 50.0, 1.0, 1.0, 0.0)
+    var state := {
+        "wdata": {"downstream_hub": down_data, "other_finite": other.data},
+        "consumers": ["other_finite"], "managers": ["downstream_hub"], "storages": [], "storage_connections": 0,
+        "auto_demands": {"downstream_hub": 0.0, "other_finite": 50.0},
+        "allocator": Allocator, "tracker": Tracker.new(),
+    }
+    Legacy.distribution_auto(100.0, state)
+    near(other.speed.count, 50.0, "finite consumer still served first")
+    near(downstream_in.count, 50.0, "uncapped downstream hub receives the leftovers")
+    var upstream_hub := make_window("hub_upstream")
+    var up_out := hub_output(upstream_hub, GPU)
+    wire(up_out, downstream_in)
+    var up_in := hub_input(upstream_hub, GPU, 80.0)
+    var up := Channel.new(GPU, upstream_hub)
+    up.set_ports([{"uid": "in", "container": up_in}], [{"uid": "out", "container": up_out, "settings": Layout.default_settings()}])
+    up.tick(Channel.Mode.AUTO)
+    near(downstream_in.count, 80.0, "a hub feeding an uncapped hub passes its supply on")
+
+    # 4. Finite inputs summing to INF are refused in every mode.
+    var big := make_window("hub_inf")
+    var big_out := hub_output(big, CPU)
+    var seller := make_window("inf_seller")
+    var seller_speed := add_container(seller, CPU, 1, true)
+    wire(big_out, seller_speed)
+    var big_channel := Channel.new(CPU, big)
+    big_channel.set_ports([{"uid": "a", "container": hub_input(big, CPU, 1e308)}, {"uid": "b", "container": hub_input(big, CPU, 1e308)}],
+        [{"uid": "out", "container": big_out, "settings": Layout.default_settings()}])
+    for mode in range(5):
+        big_channel.tick(mode)
+        check(is_finite(seller_speed.count), "mode %d: infinite total never distributed" % mode)
+        check(int(big_channel.stats.invalid_values) > 0, "mode %d: infinite total reported" % mode)
+
+    # 8. Exact determinism including the conservation correction.
+    var forward := Allocator.allocate(100.0, [req("x", 1000, 1.0), req("y", 1000, 1.0), req("z", 1000, 4.0)], Allocator.Policy.AUTO)
+    var backward := Allocator.allocate(100.0, [req("z", 1000, 4.0), req("y", 1000, 1.0), req("x", 1000, 1.0)], Allocator.Policy.AUTO)
+    check(forward.allocations == backward.allocations and forward.allocated == backward.allocated, "conservation correction is order independent")
 
 
 # --- helpers ------------------------------------------------------------------

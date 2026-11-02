@@ -117,6 +117,32 @@ func test_hub_save_reload() -> void:
     for path in ["Cpu/Inputs/cpu_in_1/Port", "Cpu/Outputs/cpu_out_1/Port", "Gpu/Inputs/gpu_in_1/Port", "Gpu/Outputs/gpu_out_1/Port"]:
         check(hub.get_node_or_null("PanelContainer/MainContainer/" + path) is ResourceContainer, "default port at %s" % path)
     check(hub.containers.size() == 4, "default ports are window containers (%d)" % hub.containers.size())
+    check(hub.late_appended_ports == 0, "new hub ports are collected by the window itself, not appended late (%d)" % hub.late_appended_ports)
+
+    # Compact view really shrinks the window once minimum sizes propagated.
+    await process_frame
+    await process_frame
+    await process_frame
+    var full_height: float = hub.size.y
+    hub.get_node("PanelContainer/MainContainer/Toolbar/CompactButton").button_pressed = true
+    for _i in range(4):
+        await process_frame
+    check(hub.size.y < full_height, "compact view shrinks the window (%s -> %s)" % [full_height, hub.size.y])
+    check(hub.size.y <= hub.get_combined_minimum_size().y + 1.0, "window height equals its content after compact")
+    hub.get_node("PanelContainer/MainContainer/Toolbar/CompactButton").button_pressed = false
+    for _i in range(4):
+        await process_frame
+    check(absf(hub.size.y - full_height) <= 1.0, "full view restores the height (%s)" % hub.size.y)
+
+    # Connecting the last free input offers a new free one.
+    var only_input = hub.get_node("PanelContainer/MainContainer/Gpu/Inputs/gpu_in_1/Port")
+    only_input.input_id = "upstream-gpu"
+    autoload("Signals").connection_created.emit("upstream-gpu", only_input.id)
+    await process_frame
+    check(hub.get_node_or_null("PanelContainer/MainContainer/Gpu/Inputs/gpu_in_2/Port") is ResourceContainer, "a free GPU input is added when the last one is wired")
+    only_input.input_id = ""
+    check(hub.remove_port("gpu_in_2"), "the extra free input can be removed")
+    await process_frame
     var cpu_port = hub.get_node("PanelContainer/MainContainer/Cpu/Inputs/cpu_in_1/Port")
     check(cpu_port.resource == "clock_speed", "CPU port forced to clock_speed")
     check(hub.get_node("PanelContainer/MainContainer/Gpu/Outputs/gpu_out_1/Port").resource == "gpu_speed", "GPU port forced to gpu_speed")
@@ -208,6 +234,8 @@ func test_hub_save_reload() -> void:
     root.remove_child(reloaded)
     check(reloaded._graph == null, "Graph mode resources released when the hub leaves the tree")
     root.add_child(reloaded)
+    check(reloaded._graph != null, "Graph mode rebuilt when the hub re-enters the tree")
+    check(reloaded.get_channel("clock_speed").graph == reloaded._graph, "channels use the rebuilt graph")
     reloaded.tick(0.05)
 
     for node in [hub, reloaded]:

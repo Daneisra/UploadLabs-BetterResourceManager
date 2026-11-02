@@ -62,7 +62,7 @@ brm_summary,In %s · Out %s · Unused %s,Reçu %s · Distribué %s · Inutilisé
 brm_summary_demand,Need %s,Besoin %s
 brm_diag_ok,OK,OK
 brm_diag_no_input,No source connected,Aucune source connectée
-brm_diag_zero_supply,Sources deliver nothing,Les sources ne fournissent rien
+brm_diag_zero_supply,Nothing received (an upstream Smart Manager only sends what the outputs need),Rien reçu (un Smart Manager en amont n'envoie que le besoin des sorties)
 brm_diag_no_output,No machine connected,Aucune machine connectée
 brm_diag_no_demand,Connected machines need nothing right now,Les machines connectées n'ont besoin de rien
 brm_diag_shortage,Shortage: need %s,Pénurie : besoin de %s

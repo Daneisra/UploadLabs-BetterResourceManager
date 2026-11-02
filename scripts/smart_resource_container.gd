@@ -415,7 +415,15 @@ func _wdata_set_roles(target_state: Dictionary) -> void:
             SmartWindowData.SmartWindowRoles.CONSUMER:
                 consumers.append(name)
             SmartWindowData.SmartWindowRoles.MANAGER:
-                managers.append(name)
+                var manager_data = target_state.wdata[name]
+                if manager_data.is_uncapped_manager() and manager_data.get_demand() <= 0.0:
+                    # A downstream hub that only feeds uncapped machines would
+                    # get 0 as a finite manager: Ratio/Demand/Graph give it the
+                    # leftovers like any other uncapped target instead.
+                    storages.append(name)
+                    storage_connections += manager_data.provided.size()
+                else:
+                    managers.append(name)
             SmartWindowData.SmartWindowRoles.STORAGE:
                 storages.append(name)
                 storage_connections += target_state.wdata[name].provided.size()
