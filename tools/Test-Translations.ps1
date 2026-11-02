@@ -10,7 +10,7 @@ Set-StrictMode -Version Latest
 $runtime = Join-Path $ProjectRoot ('release/translations-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $runtime | Out-Null
 Get-ChildItem -LiteralPath (Join-Path $ProjectRoot 'tests/translations') -File | Copy-Item -Destination $runtime
-Copy-Item -LiteralPath (Join-Path $TranslationDirectory 'AdaptiveSmartManager.csv') -Destination $runtime
+Copy-Item -LiteralPath (Join-Path $TranslationDirectory 'BetterResourceManager.csv') -Destination $runtime
 if ($Rebuild) {
     $buildLog = Join-Path $runtime 'build.log'
     & $GodotExecutable --headless --path $runtime --log-file $buildLog --script res://build_translation.gd
@@ -19,16 +19,16 @@ if ($Rebuild) {
     }
 }
 else {
-    Copy-Item -LiteralPath (Join-Path $TranslationDirectory 'AdaptiveSmartManager.en.translation') -Destination $runtime
+    Get-ChildItem -LiteralPath $TranslationDirectory -Filter 'BetterResourceManager.*.translation' | Copy-Item -Destination $runtime
 }
 $log = Join-Path $runtime 'verification.log'
-& $GodotExecutable --headless --path $runtime --log-file $log --script res://verify_translation.gd -- res://AdaptiveSmartManager.csv res://AdaptiveSmartManager.en.translation
+& $GodotExecutable --headless --path $runtime --log-file $log --script res://verify_translation.gd -- res://BetterResourceManager.csv
 if ($LASTEXITCODE -ne 0) { throw "Translation verification failed. Log: $log" }
-if (-not (Select-String -LiteralPath $log -Pattern '^ASM TRANSLATION: 15 messages verified, 0 failures$' -Quiet)) {
+if (-not (Select-String -LiteralPath $log -Pattern '^BRM TRANSLATION: \d+ messages x \d+ locales verified, 0 failures$' -Quiet)) {
     throw "Translation success summary missing. Log: $log"
 }
 if (Select-String -LiteralPath $log -Pattern '^SCRIPT ERROR:|^ERROR:' -Quiet) { throw "Godot reported an error. Log: $log" }
 if ($Rebuild) {
-    Copy-Item -LiteralPath (Join-Path $runtime 'AdaptiveSmartManager.en.translation') -Destination $TranslationDirectory -Force
+    Get-ChildItem -LiteralPath $runtime -Filter 'BetterResourceManager.*.translation' | Copy-Item -Destination $TranslationDirectory -Force
 }
 Write-Output "Verified translation log: $log"
