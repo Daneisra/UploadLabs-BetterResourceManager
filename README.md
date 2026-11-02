@@ -2,7 +2,7 @@
 
 Mod Upload Labs qui centralise le CPU et le GPU dans un seul nœud, **Better Resource Hub**, et conserve les **Smart Thread Manager** et **Smart GPU Manager** d'Adaptive Smart Manager.
 
-> **Version : `v0.1.0-alpha.3`** — alpha. Essais en jeu de l'alpha.1 et de l'alpha.2 : mod chargé, gestionnaires existants repris ; l'alpha.3 corrige l'intégration du hub à la fenêtre native (fond, câbles, entrées). Voir [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
+> **Version : `v0.1.0-alpha.3`** — alpha. Essais en jeu de l'alpha.1 et de l'alpha.2 : mod chargé, gestionnaires existants repris ; l'alpha.3 vise à corriger l'intégration du hub à la fenêtre native (fond, câbles, entrées), non encore vérifié en jeu. Voir [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
 
 *English summary: Better Resource Hub pools CPU (`clock_speed`) and GPU (`gpu_speed`) from any number of input ports and shares each pool between any number of output ports, with priorities, weights, limits and an Auto mode. It also ships the Smart Thread / Smart GPU Managers (same window ids as kuuk's mods and Adaptive Smart Manager). Alpha: in-game validation pending.*
 
