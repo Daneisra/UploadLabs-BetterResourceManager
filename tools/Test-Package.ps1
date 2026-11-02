@@ -1,105 +1,123 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$Archive,
-    [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot),
-    [string]$OriginalArchive
+    [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot)
 )
+
+# Static verification of the installable ZIP: structure, manifest identity,
+# declared incompatibilities, byte-for-byte match with the source, and every
+# resource path the scripts and scenes reference.
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$prefix = 'mods-unpacked/Daneisra-BetterResourceManager/'
-$expected = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+
+$modId = 'Daneisra-BetterResourceManager'
+$prefix = "mods-unpacked/$modId/"
 $rootPath = (Resolve-Path -LiteralPath $ProjectRoot).Path.TrimEnd([char[]]'\/')
-foreach ($item in @('manifest.json', 'mod_main.gd', 'data', 'scenes', 'scripts', 'translations', 'LICENSE', 'NOTICE.md', 'README.md')) {
-    foreach ($file in Get-ChildItem -LiteralPath (Join-Path $rootPath $item) -File -Recurse -Force) {
-        $relative = $file.FullName.Substring($rootPath.Length + 1).Replace('\', '/')
-        $expected.Add($prefix + $relative, $file.FullName)
+$runtimeItems = @('manifest.json', 'mod_main.gd', 'data', 'scenes', 'scripts', 'translations', 'README.md', 'CHANGELOG.md', 'LICENSE', 'NOTICE.md')
+$expectedIncompatibilities = @('kuuk-SmartThreadManager', 'kuuk-SmartGPUManager', 'guardipee14-AdaptiveSmartManager')
+# Game resources the mod's scenes rely on; they must exist in Upload Labs, not in the ZIP.
+$gameResources = @('res://scenes/windows/window_base.tscn', 'res://scenes/input_container.tscn', 'res://scenes/output_container.tscn', 'res://textures/icons/brain.png', 'res://themes/fonts/main.tres')
+
+$expected = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
+foreach ($item in $runtimeItems) {
+    $source = Join-Path $rootPath $item
+    foreach ($file in @(Get-Item -LiteralPath $source) + @(Get-ChildItem -LiteralPath $source -File -Recurse -ErrorAction SilentlyContinue)) {
+        if ($file.PSIsContainer) { continue }
+        $expected[$prefix + $file.FullName.Substring($rootPath.Length + 1).Replace('\', '/')] = $file.FullName
     }
-}
-$sourceMain = Get-Content -LiteralPath (Join-Path $rootPath 'mod_main.gd') -Raw
-$buildMatch = [regex]::Match($sourceMain, '(?m)^const MOD_BUILD := "(test21|test22|test23)"\r?$')
-if (-not $buildMatch.Success) { throw 'Unknown package build identity.' }
-$build = $buildMatch.Groups[1].Value
-$fileCount = if ($build -in @('test22','test23')) { 20 } else { 19 }
-if ($expected.Count -ne $fileCount) { throw "Expected $fileCount package source files, got $($expected.Count)." }
-if ($OriginalArchive -and $build -ne 'test21') {
-    throw 'Original-test20 exact gameplay reconciliation is specific to test21. Newer builds intentionally change compatibility behavior; run the unlock and demand regression tests.'
 }
 
-function Read-EntryText($Entry) {
-    if ($null -eq $Entry) { throw 'Required ZIP entry missing.' }
-    $reader = [IO.StreamReader]::new($Entry.Open())
+function Read-Entry($Zip, [string]$Name) {
+    $entry = $Zip.GetEntry($Name)
+    if ($null -eq $entry) { throw "Missing ZIP entry: $Name" }
+    $reader = [IO.StreamReader]::new($entry.Open())
     try { return $reader.ReadToEnd() } finally { $reader.Dispose() }
 }
-function Normalize-Text([string]$Value) {
-    return [regex]::Replace($Value.Replace("`r`n", "`n"), '[\t ]+(?=\n|$)', '').TrimEnd([char[]]"`r`n")
-}
+
 $zip = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $Archive).Path)
-$baseline = $null
 try {
-    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $names = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($entry in $zip.Entries) {
-        if ($entry.FullName.EndsWith('/')) { continue }
-        if (-not $seen.Add($entry.FullName) -or -not $expected.ContainsKey($entry.FullName)) {
-            throw "Duplicate or unexpected package entry: $($entry.FullName)"
-        }
-        $stream = $entry.Open()
+        $name = $entry.FullName
+        if ($name.Contains('\')) { throw "Backslash in ZIP entry (Godot cannot read it): $name" }
+        if ($name.EndsWith('/')) { continue }
+        if (-not $name.StartsWith($prefix)) { throw "Entry outside $prefix : $name" }
+        if (-not $names.Add($name)) { throw "Duplicate entry: $name" }
+        if (-not $expected.ContainsKey($name)) { throw "Unexpected entry: $name" }
         $hasher = [Security.Cryptography.SHA256]::Create()
+        $stream = $entry.Open()
         try { $hash = [BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-', '') }
         finally { $stream.Dispose(); $hasher.Dispose() }
-        if ($hash -cne (Get-FileHash -LiteralPath $expected[$entry.FullName]).Hash) {
-            throw "Package/source byte mismatch: $($entry.FullName)"
+        if ($hash -cne (Get-FileHash -LiteralPath $expected[$name]).Hash) { throw "Entry differs from source: $name" }
+    }
+    foreach ($name in $expected.Keys) {
+        if (-not $names.Contains($name)) { throw "Source file missing from ZIP: $name" }
+    }
+
+    $manifest = (Read-Entry $zip ($prefix + 'manifest.json')) | ConvertFrom-Json
+    if ("$($manifest.namespace)-$($manifest.name)" -cne $modId) { throw "Manifest id is $($manifest.namespace)-$($manifest.name), expected $modId" }
+    if ($manifest.version_number -notmatch '^\d+\.\d+\.\d+$') { throw 'Manifest version is not semantic.' }
+    $godot = $manifest.extra.godot
+    $incompatibilities = @($godot.incompatibilities)
+    foreach ($id in $expectedIncompatibilities) {
+        if ($incompatibilities -notcontains $id) { throw "Manifest does not declare incompatibility with $id" }
+    }
+    if (@($manifest.dependencies).Count -ne 0) { throw 'BRM must not require other mods.' }
+    if (@($godot.compatible_mod_loader_version) -notcontains '7.0.1') { throw 'Mod Loader 7.0.1 not declared.' }
+
+    $main = Read-Entry $zip ($prefix + 'mod_main.gd')
+    $build = [regex]::Match($main, '(?m)^const MOD_BUILD := "([^"]+)"').Groups[1].Value
+    if ([string]::IsNullOrEmpty($build)) { throw 'MOD_BUILD missing.' }
+    if ($main -notmatch [regex]::Escape("const MOD_DIR := `"$modId`"")) { throw 'MOD_DIR does not match the folder.' }
+
+    foreach ($locale in @('en', 'fr')) {
+        if ($null -eq $zip.GetEntry($prefix + "translations/BetterResourceManager.$locale.translation")) { throw "Missing $locale translation." }
+    }
+
+    # Every window registered must point at a scene shipped in the ZIP.
+    $data = (Read-Entry $zip ($prefix + 'data/brm_data.json')) | ConvertFrom-Json
+    $windowIds = @($data.windows.PSObject.Properties.Name)
+    foreach ($id in @('smart_thread_manager', 'smart_gpu_manager', 'better_resource_hub')) {
+        if ($windowIds -notcontains $id) { throw "Window $id not registered." }
+        $scene = ([string]$data.windows.$id.scene).Replace('../../', '') + '.tscn'
+        if ($null -eq $zip.GetEntry($scene)) { throw "Window $id scene not in ZIP: $scene" }
+    }
+
+    # Every res:// path referenced by a shipped script or scene must be shipped
+    # too, or be one of the known game resources.
+    $missing = [Collections.Generic.List[string]]::new()
+    $external = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($entry in $zip.Entries | Where-Object { $_.FullName -match '\.(gd|tscn)$' }) {
+        $text = Read-Entry $zip $entry.FullName
+        foreach ($match in [regex]::Matches($text, 'res://[A-Za-z0-9_./-]+\.(gd|tscn|tres|png|json|translation)')) {
+            $path = $match.Value
+            if ($path.StartsWith("res://$prefix")) {
+                if ($null -eq $zip.GetEntry($path.Substring(6))) { $missing.Add("$($entry.FullName) -> $path") }
+            }
+            elseif ($path.StartsWith('res://mods-unpacked/')) {
+                # Legacy alias targets (kuuk / ASM paths) are intentionally not shipped.
+                if ($entry.FullName -notmatch 'legacy_scene_aliases\.gd$|verify') { $missing.Add("$($entry.FullName) -> $path (other mod)") }
+            }
+            else { [void]$external.Add($path) }
         }
     }
-    if ($seen.Count -ne $expected.Count) { throw 'Package omits source files.' }
-    $main = Read-EntryText $zip.GetEntry($prefix + 'mod_main.gd')
-    if ($main -notmatch ('(?m)^const MOD_BUILD := "' + $build + '"\r?$')) { throw "Missing $build runtime identity." }
-    $manifest = (Read-EntryText $zip.GetEntry($prefix + 'manifest.json')) | ConvertFrom-Json
-    if ($manifest.version_number -ne '0.1.0' -or $manifest.description -notmatch [regex]::Escape("v0.1.0-$build")) {
-        throw "Manifest does not identify $build."
-    }
-    $compiledHash = (Get-FileHash -LiteralPath $expected[$prefix + 'translations/BetterResourceManager.en.translation']).Hash
-    if ($compiledHash -cne '997F9B755BDFADE7E23A8D47EE45520F2CD1AC4FE0A3E3ADAD49898A13A17B61') {
-        throw 'Compiled translation differs from the 15-message verified test21 asset.'
-    }
-    if ($OriginalArchive) {
-        if ((Get-FileHash -LiteralPath $OriginalArchive).Hash -ne 'B3B8AAD369E28CE19874DEE6BCEEC0E07D84DE9C3914AC05ED708F7FE66C7DFC') {
-            throw 'Original archive is not the tested test20 package.'
-        }
-        $baseline = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $OriginalArchive).Path)
-        foreach ($name in $expected.Keys) {
-            $relative = $name.Substring($prefix.Length)
-            if ($relative -in @('README.md', 'translations/BetterResourceManager.en.translation')) { continue }
-            $before = Read-EntryText $baseline.GetEntry($name)
-            $after = Read-EntryText $zip.GetEntry($name)
-            if ($relative -eq 'manifest.json') {
-                $beforeJson = $before | ConvertFrom-Json
-                $afterJson = $after | ConvertFrom-Json
-                foreach ($field in @('description', 'website_url')) {
-                    $beforeJson.PSObject.Properties.Remove($field)
-                    $afterJson.PSObject.Properties.Remove($field)
-                }
-                $before = $beforeJson | ConvertTo-Json -Depth 30 -Compress
-                $after = $afterJson | ConvertTo-Json -Depth 30 -Compress
-            }
-            elseif ($relative -eq 'mod_main.gd') {
-                $after = [regex]::Replace($after, '(?m)^const MOD_BUILD := "test21"\r?\n', '')
-                $after = $after.Replace('"Adaptive Smart Manager initialized, version: %s (%s recovered test20 package)" % [MOD_VERSION, MOD_BUILD]', '"Adaptive Smart Manager initialized, version: %s (test20 compact unified Demand layout)" % MOD_VERSION')
-            }
-            if ((Normalize-Text $before) -cne (Normalize-Text $after)) {
-                throw "Unexpected original-test20 content change: $relative"
-            }
-        }
+    if ($missing.Count -gt 0) { throw "Unresolved references:`n$($missing -join "`n")" }
+    foreach ($path in $external) {
+        if ($gameResources -notcontains $path) { throw "Unknown game resource referenced: $path" }
     }
 }
 finally {
-    if ($null -ne $baseline) { $baseline.Dispose() }
     $zip.Dispose()
 }
+
 [pscustomobject]@{
-    Build = "0.1.0-$build"
-    FilesVerified = $expected.Count
-    SHA256 = (Get-FileHash -LiteralPath $Archive).Hash.ToLowerInvariant()
-    OriginalGameplayVerified = [bool]$OriginalArchive
-    InGameValidation = 'pending'
+    ModId             = $modId
+    Version           = "$($manifest.version_number)-$build"
+    FilesVerified     = $expected.Count
+    Incompatibilities = $incompatibilities -join ', '
+    GameResources     = ($external | Sort-Object) -join ', '
+    SHA256            = (Get-FileHash -LiteralPath $Archive).Hash.ToLowerInvariant()
+    InGameValidation  = 'pending'
 }

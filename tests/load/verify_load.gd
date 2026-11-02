@@ -171,6 +171,45 @@ func test_hub_save_reload() -> void:
     check(reloaded.containers.size() == hub.containers.size(), "no default ports added on top of a saved layout")
     check(reloaded.add_port(3) == "gpu_out_4", "uid counter survives reload")
 
+    # Runtime paths: ticks, UI refresh and every UI action, in every mode.
+    var cpu_in = reloaded.get_node("PanelContainer/MainContainer/Cpu/Inputs/cpu_in_1/Port")
+    cpu_in.count = 1000.0
+    cpu_in.input_id = "upstream"
+    for mode in range(5):
+        reloaded._on_mode_selected(reloaded.mode_button.get_item_index(mode))
+        check(reloaded.brm_mode == mode, "mode %d selectable" % mode)
+        for _i in range(8):
+            reloaded.tick(0.05)
+        reloaded._refresh_ui()
+    near(reloaded.get_channel("clock_speed").stats.supply, 1000.0, "hub tick reads its CPU input")
+    check(reloaded.get_resource_demand("gpu_speed") == 0.0, "GPU demand separate from CPU")
+    reloaded._toggle_settings("cpu_out_1")
+    reloaded._step_setting("cpu_out_1", "priority", 2)
+    reloaded._flip_setting("cpu_out_1", "enabled")
+    reloaded._flip_setting("cpu_out_1", "manual")
+    reloaded._commit_number("cpu_out_1", "max", "2.5Z")
+    reloaded._commit_number("cpu_out_1", "min", "1e3")
+    reloaded._commit_number("cpu_out_1", "weight", "not a number")
+    var settings: Dictionary = reloaded.brm_layout.ports.filter(func(port): return port.uid == "cpu_out_1")[0].settings
+    check(int(settings.priority) == 2 and not settings.enabled and settings.manual, "settings buttons update the layout")
+    near(float(settings.max), 2.5e21, "max parsed from 2.5Z")
+    near(float(settings.min), 1000.0, "min parsed from 1e3")
+    near(float(settings.weight), 1.0, "invalid weight ignored")
+    reloaded._on_label_committed("cpu_out_1", "AI Trainer")
+    check(reloaded.brm_layout.ports[1].label == "AI Trainer", "port name stored")
+    var compact_button = reloaded.get_node("PanelContainer/MainContainer/Toolbar/CompactButton")
+    compact_button.button_pressed = true
+    check(reloaded.brm_compact, "compact view toggles")
+    reloaded.tick(0.05)
+    reloaded._refresh_ui()
+    var status: Label = reloaded.get_node("PanelContainer/MainContainer/Cpu/Status")
+    check(not status.text.is_empty(), "status line filled")
+    reloaded._on_mode_selected(reloaded.mode_button.get_item_index(4))
+    root.remove_child(reloaded)
+    check(reloaded._graph == null, "Graph mode resources released when the hub leaves the tree")
+    root.add_child(reloaded)
+    reloaded.tick(0.05)
+
     for node in [hub, reloaded]:
         node.queue_free()
     await process_frame
@@ -210,6 +249,10 @@ func _collect(directory: String, extension: String, result: Array[String]) -> vo
             result.append(directory.path_join(file))
     for sub in DirAccess.get_directories_at(directory):
         _collect(directory.path_join(sub), extension, result)
+
+
+func near(actual: float, expected: float, label: String) -> void:
+    check(absf(actual - expected) <= maxf(absf(expected), 1e-12) * 1e-9, "%s: expected %s, got %s" % [label, expected, actual])
 
 
 func check(condition: bool, label: String) -> void:
