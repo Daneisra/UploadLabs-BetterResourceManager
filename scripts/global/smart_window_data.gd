@@ -1,5 +1,10 @@
 extends RefCounted
 
+# Auto mode also counts material already waiting in a consumer's buffer: a
+# machine with a large backlog can use more CPU/GPU than its inflow alone
+# suggests (see docs/ARCHITECTURE.md, "AI Trainer under-allocation").
+const BACKLOG_HORIZON_SECONDS := 10.0
+
 enum SmartWindowRoles {
     ARTIFACT,
     CONSUMER,
@@ -13,6 +18,8 @@ var role: SmartWindowRoles = SmartWindowRoles.ARTIFACT
 var process_component: Node
 
 var provided: Array = []
+# _has_modern_speed() result, refreshed by set_containers()/update().
+var _modern_speed := false
 var dependent: Array = []
 var container_data: Dictionary[String, SmartContainerData]
 
@@ -58,9 +65,10 @@ func set_containers(sources: Array = []) -> void:
         if not container_data.has(name):
             container_data[name] = SmartContainerData.new(inputs[name])
 
+    _modern_speed = _has_modern_speed()
     if "demand" in window:
         role = SmartWindowRoles.MANAGER
-    elif not dependent.is_empty() and (window.has_method("get_goal") or _has_modern_speed()):
+    elif not dependent.is_empty() and (window.has_method("get_goal") or _modern_speed):
         role = SmartWindowRoles.CONSUMER
     elif window.is_in_group("window"):
         role = SmartWindowRoles.STORAGE
@@ -111,7 +119,7 @@ func get_demand() -> float:
         return 0.0
 
     if role == SmartWindowRoles.MANAGER:
-        return float(window.demand)
+        return _manager_demand()
 
     return get_min_production_ratio() * get_goal()
 
@@ -121,9 +129,48 @@ func get_count_demand() -> float:
         return 0.0
 
     if role == SmartWindowRoles.MANAGER:
-        return float(window.demand)
+        return _manager_demand()
 
     return get_min_count_ratio() * get_goal()
+
+
+# Inflow-based demand plus the work needed to drain the current buffer within
+# BACKLOG_HORIZON_SECONDS. Never lower than get_demand().
+func get_auto_demand(horizon: float = BACKLOG_HORIZON_SECONDS) -> float:
+    if provided.is_empty():
+        return 0.0
+
+    if role == SmartWindowRoles.MANAGER:
+        return _manager_demand()
+
+    var goal := get_goal()
+    if goal <= 0.0 or dependent.is_empty():
+        return 0.0
+
+    var safe_horizon := horizon if is_finite(horizon) and horizon > 0.0 else BACKLOG_HORIZON_SECONDS
+    var ratio := INF
+    for name in dependent:
+        ratio = minf(ratio, container_data[name].get_backlog_ratio(safe_horizon))
+    var demand := ratio * goal
+    return demand if is_finite(demand) and demand > 0.0 else 0.0
+
+
+func get_provided_resource() -> String:
+    for name in provided:
+        if inputs.has(name) and "resource" in inputs[name]:
+            return str(inputs[name].resource)
+    return ""
+
+
+func _manager_demand() -> float:
+    # A Better Resource Hub manages two independent resources; ask it for the
+    # one this manager actually supplies instead of a mixed total.
+    var value := 0.0
+    if window.has_method("get_resource_demand"):
+        value = float(window.get_resource_demand(get_provided_resource()))
+    else:
+        value = float(window.demand)
+    return value if is_finite(value) and value > 0.0 else 0.0
 
 
 func set_count(value: float) -> void:
@@ -169,7 +216,12 @@ func get_goal() -> float:
         return 0.0
     if window.has_method("get_goal"):
         return float(window.get_goal())
-    if _has_modern_speed():
+    if (
+        _modern_speed
+        and is_instance_valid(process_component)
+        and is_instance_valid(process_component.speed_obj)
+        and is_instance_valid(process_component.goal_obj)
+    ):
         var rate := float(process_component.speed_obj.rate)
         if rate <= 0.0 or not is_finite(rate):
             return 0.0
@@ -208,6 +260,12 @@ class SmartContainerData extends RefCounted:
 
     func get_count_ratio() -> float:
         return multiplier * float(container.count)
+
+    func get_backlog_ratio(horizon: float) -> float:
+        var inflow := maxf(float(container.production), 0.0)
+        var stock := maxf(float(container.count), 0.0)
+        var ratio := multiplier * (inflow + stock / horizon)
+        return ratio if is_finite(ratio) else 0.0
 
     func _get_multiplier() -> float:
         var divisor := (
