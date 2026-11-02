@@ -1,8 +1,8 @@
 extends RefCounted
 
-const ASMUtils = preload("res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/asm_utils.gd")
+const BRMUtils = preload("res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/brm_utils.gd")
 
-var LOG_NAME = "guardipee14:ASM:WindowGraph"
+var LOG_NAME = "Daneisra:BRM:WindowGraph"
 
 signal changed
 signal _internal_update
@@ -300,7 +300,7 @@ func _source_for(node_name: String, target: String) -> bool:
 
 
 class NodeData extends RefCounted:
-    const LOG_NAME = "guardipee14:ASM:WindowGraph:NodeData"
+    const LOG_NAME = "Daneisra:BRM:WindowGraph:NodeData"
 
     var window: WindowBase = null
     var left: Array = []
@@ -314,7 +314,7 @@ class NodeData extends RefCounted:
             ).filter(
                 func(i): return i != null
             ).map(
-                ASMUtils.get_parent_window
+                BRMUtils.get_parent_window
             )
 
         ModLoaderLog.error(
@@ -334,7 +334,7 @@ class NodeData extends RefCounted:
             ):
                 result.append_array(
                     array.map(
-                        ASMUtils.get_parent_window
+                        BRMUtils.get_parent_window
                     ).filter(
                         func(w): return w != null
                     )

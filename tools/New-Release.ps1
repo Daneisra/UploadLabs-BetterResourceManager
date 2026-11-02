@@ -12,7 +12,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$modFolderName = 'guardipee14-AdaptiveSmartManager'
+$modFolderName = 'Daneisra-BetterResourceManager'
 $manifestPath = Join-Path $ProjectRoot 'manifest.json'
 $readmePath = Join-Path $ProjectRoot 'README.md'
 $changelogPath = Join-Path $ProjectRoot 'CHANGELOG.md'
@@ -95,7 +95,7 @@ if ([string]::IsNullOrWhiteSpace($ReleaseLabel)) { $ReleaseLabel = $expectedLabe
 if ($ReleaseLabel -cne $expectedLabel) {
     throw "Release label must match the runtime build identity: $expectedLabel"
 }
-$translationPath = Join-Path $ProjectRoot 'translations/AdaptiveSmartManager.en.translation'
+$translationPath = Join-Path $ProjectRoot 'translations/BetterResourceManager.en.translation'
 if (-not (Test-Path -LiteralPath $translationPath -PathType Leaf)) {
     throw 'Compiled English translation is missing. Run tools/Test-Translations.ps1 -Rebuild first.'
 }
@@ -189,7 +189,7 @@ try {
         throw "Archive manifest version '$($archiveManifest.version_number)' does not match '$version'."
     }
 
-    if ($null -eq $zip.GetEntry("mods-unpacked/$modFolderName/translations/AdaptiveSmartManager.en.translation")) {
+    if ($null -eq $zip.GetEntry("mods-unpacked/$modFolderName/translations/BetterResourceManager.en.translation")) {
         throw 'Release archive is missing its compiled English translation.'
     }
     foreach ($requiredEntry in @('mod_main.gd', 'scripts', 'scenes', 'translations')) {

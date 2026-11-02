@@ -1,4 +1,4 @@
-extends "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/window_graph.gd"
+extends "res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/window_graph.gd"
 
 var manager: WindowBase
 var depth_to_keep: Dictionary[int, Dictionary]
@@ -8,7 +8,7 @@ var filtered: Dictionary[int, Dictionary]
 func _init(target_manager: WindowBase) -> void:
     super()
     manager = target_manager
-    LOG_NAME = "guardipee14:ASM:SmartWindowGraph"
+    LOG_NAME = "Daneisra:BRM:SmartWindowGraph"
     add_node_chained(manager)
 
 

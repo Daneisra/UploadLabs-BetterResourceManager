@@ -1,33 +1,32 @@
 {
-  "name": "AdaptiveSmartManager",
-  "namespace": "guardipee14",
+  "name": "BetterResourceManager",
+  "namespace": "Daneisra",
   "version_number": "0.1.0",
-  "description": "Adaptive Smart Manager v0.1.0-test23: reads 3.0 Process goals, consumed inputs and speed conversion for finite CPU/GPU demand; refreshes dynamic requirements. Retains test22 unlock compatibility, manager ids, settings and distribution policies.",
-  "website_url": "https://github.com/guardipee14/Adaptive-Smart-Manager",
+  "description": "Better Resource Manager v0.1.0-alpha.1: Better Resource Hub with extensible CPU/GPU inputs and outputs, Auto allocation, and the Smart Thread / Smart GPU Managers from Adaptive Smart Manager test23.",
+  "website_url": "https://github.com/Daneisra/UploadLabs-BetterResourceManager",
   "dependencies": [],
   "extra": {
     "godot": {
       "authors": [
-        "guardipee14",
-        "kuuk (original Smart Manager code)"
+        "Daneisra",
+        "guardipee14 (Adaptive Smart Manager)",
+        "kuuk / Omisse (original Smart Manager code)"
       ],
       "compatible_game_version": [
-        "2.2.12",
-        "3.0.9"
+        "3.0.12"
       ],
       "compatible_mod_loader_version": [
         "7.0.1"
       ],
       "config_schema": {},
-      "description_rich": "Adaptive Smart Manager unifies Smart Thread and Smart GPU Manager while preserving their player-facing behavior, fixing runtime bugs, and exposing a read-only AAC compatibility surface.",
+      "description_rich": "Better Resource Manager adds Better Resource Hub, a single node that pools CPU and GPU from any number of inputs and distributes them to any number of outputs, and keeps the Smart Thread / Smart GPU Managers (window ids smart_thread_manager and smart_gpu_manager). Fork of Adaptive Smart Manager by guardipee14, itself based on kuuk / Omisse's Smart Manager (MIT).",
       "image": null,
       "incompatibilities": [
         "kuuk-SmartThreadManager",
-        "kuuk-SmartGPUManager"
+        "kuuk-SmartGPUManager",
+        "guardipee14-AdaptiveSmartManager"
       ],
-      "load_before": [
-        "guardipee14-AdaptiveAutoConnector"
-      ],
+      "load_before": [],
       "optional_dependencies": [],
       "tags": [
         "gameplay",

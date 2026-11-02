@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$prefix = 'mods-unpacked/guardipee14-AdaptiveSmartManager/'
+$prefix = 'mods-unpacked/Daneisra-BetterResourceManager/'
 $expected = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
 $rootPath = (Resolve-Path -LiteralPath $ProjectRoot).Path.TrimEnd([char[]]'\/')
 foreach ($item in @('manifest.json', 'mod_main.gd', 'data', 'scenes', 'scripts', 'translations', 'LICENSE', 'NOTICE.md', 'README.md')) {
@@ -58,7 +58,7 @@ try {
     if ($manifest.version_number -ne '0.1.0' -or $manifest.description -notmatch [regex]::Escape("v0.1.0-$build")) {
         throw "Manifest does not identify $build."
     }
-    $compiledHash = (Get-FileHash -LiteralPath $expected[$prefix + 'translations/AdaptiveSmartManager.en.translation']).Hash
+    $compiledHash = (Get-FileHash -LiteralPath $expected[$prefix + 'translations/BetterResourceManager.en.translation']).Hash
     if ($compiledHash -cne '997F9B755BDFADE7E23A8D47EE45520F2CD1AC4FE0A3E3ADAD49898A13A17B61') {
         throw 'Compiled translation differs from the 15-message verified test21 asset.'
     }
@@ -69,7 +69,7 @@ try {
         $baseline = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $OriginalArchive).Path)
         foreach ($name in $expected.Keys) {
             $relative = $name.Substring($prefix.Length)
-            if ($relative -in @('README.md', 'translations/AdaptiveSmartManager.en.translation')) { continue }
+            if ($relative -in @('README.md', 'translations/BetterResourceManager.en.translation')) { continue }
             $before = Read-EntryText $baseline.GetEntry($name)
             $after = Read-EntryText $zip.GetEntry($name)
             if ($relative -eq 'manifest.json') {

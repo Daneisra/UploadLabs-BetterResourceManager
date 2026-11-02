@@ -4,7 +4,7 @@
       "name": "window_smart_thread_manager",
       "icon": "brain",
       "description": "window_stm_desc",
-      "scene": "../../mods-unpacked/guardipee14-AdaptiveSmartManager/scenes/windows/window_smart_thread_manager",
+      "scene": "../../mods-unpacked/Daneisra-BetterResourceManager/scenes/windows/window_smart_thread_manager",
       "group": "",
       "category": "cpu",
       "sub_category": "management",
@@ -23,7 +23,7 @@
       "name": "window_smart_gpu_manager",
       "icon": "brain",
       "description": "window_sgm_desc",
-      "scene": "../../mods-unpacked/guardipee14-AdaptiveSmartManager/scenes/windows/window_smart_gpu_manager",
+      "scene": "../../mods-unpacked/Daneisra-BetterResourceManager/scenes/windows/window_smart_gpu_manager",
       "group": "",
       "category": "gpu",
       "sub_category": "management",
@@ -37,6 +37,25 @@
       },
       "data": {},
       "guide": "window_smart_gpu_manager"
+    },
+    "better_resource_hub": {
+      "name": "window_better_resource_hub",
+      "icon": "brain",
+      "description": "window_brh_desc",
+      "scene": "../../mods-unpacked/Daneisra-BetterResourceManager/scenes/windows/window_better_resource_hub",
+      "group": "",
+      "category": "cpu",
+      "sub_category": "management",
+      "level": 0,
+      "requirement": "perk.thread_manager",
+      "hidden": true,
+      "attribute": "",
+      "attribute_cost": 0,
+      "attributes": {
+        "limit": -1
+      },
+      "data": {},
+      "guide": "window_better_resource_hub"
     }
   },
   "guides": {
@@ -101,6 +120,33 @@
           "text": "guide_window_smart_thread_manager_graph",
           "level": 0,
           "requirement": "research.gpu_manager"
+        }
+      ]
+    },
+    "window_better_resource_hub": {
+      "name": "window_better_resource_hub",
+      "icon": "brain",
+      "type": 1,
+      "entries": [
+        {
+          "text": "guide_window_better_resource_hub",
+          "level": 0,
+          "requirement": "perk.thread_manager"
+        },
+        {
+          "text": "guide_window_better_resource_hub_ports",
+          "level": 0,
+          "requirement": "perk.thread_manager"
+        },
+        {
+          "text": "guide_window_better_resource_hub_modes",
+          "level": 0,
+          "requirement": "perk.thread_manager"
+        },
+        {
+          "text": "guide_window_better_resource_hub_settings",
+          "level": 0,
+          "requirement": "perk.thread_manager"
         }
       ]
     }

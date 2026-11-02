@@ -9,7 +9,7 @@ $runtime = Join-Path $ProjectRoot ('release/unlocks-' + [guid]::NewGuid().ToStri
 New-Item -ItemType Directory -Path $runtime | Out-Null
 Get-ChildItem -LiteralPath (Join-Path $ProjectRoot 'tests/unlocks') -File | Copy-Item -Destination $runtime
 Copy-Item -LiteralPath (Join-Path $ProjectRoot 'scripts/global/manager_unlocks.gd') -Destination $runtime
-Copy-Item -LiteralPath (Join-Path $ProjectRoot 'data/asm_data.json') -Destination $runtime
+Copy-Item -LiteralPath (Join-Path $ProjectRoot 'data/brm_data.json') -Destination $runtime
 $log = Join-Path $runtime 'verification.log'
 & $GodotExecutable --headless --path $runtime --log-file $log --script res://verify_unlocks.gd
 if ($LASTEXITCODE -ne 0) { throw "Unlock verification failed. Log: $log" }
