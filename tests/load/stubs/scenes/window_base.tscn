@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://stubs/window_base.gd" id="1_base"]
+
+[node name="WindowBase" type="Control" unique_id=1571110532]
+script = ExtResource("1_base")
+
+[node name="TitlePanel" type="PanelContainer" parent="." unique_id=1100000001]
+
+[node name="TitleContainer" type="HBoxContainer" parent="TitlePanel" unique_id=1176133871]
+
+[node name="Icon" type="TextureRect" parent="TitlePanel/TitleContainer" unique_id=2015431448]
+
+[node name="Title" type="Label" parent="TitlePanel/TitleContainer" unique_id=570823129]
+
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=1257840124]
