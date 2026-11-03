@@ -16,7 +16,7 @@ Un gestionnaire unique, fiable et extensible, qui centralise toutes les ressourc
 | Correction AI Trainer (surplus + stock en attente) | fait, simulée ; critère en jeu à vérifier |
 | Tests isolés (hub, load, demand, unlocks, translations) | réussis |
 | ZIP installable vérifié | fait |
-| Validation en jeu | alpha.1 et alpha.2 essayées le 2026-11-02 (entrées du hub à 0) ; alpha.3 à essayer (voir [TEST_RESULTS.md](TEST_RESULTS.md)) |
+| Validation en jeu | alpha.5 validée le 2026-11-03 : hubs CPU et GPU à 10 entrées, réserves, sauvegarde/rechargement (voir [TEST_RESULTS.md](TEST_RESULTS.md)) |
 
 ## Problèmes connus à traiter
 

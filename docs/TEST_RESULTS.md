@@ -1,5 +1,16 @@
 # Résultats des tests
 
+## v0.1.0-alpha.5 — essai en jeu du 2026-11-03 (Jérémy)
+
+| Point | Résultat |
+|---|---|
+| Entrée vide retirée, sauvegarde, rechargement | **réussi** : elle ne revient plus (journal : aucun ajout automatique au chargement) |
+| Brancher la dernière entrée libre | **réussi** : une nouvelle entrée libre apparaît |
+| Hub CPU, 10 entrées sur 2 Processeurs Mk.52 | **réussi** : Reçu 4,81 ZHz, Distribué 4,81 ZHz, Inutilisé 0 |
+| Hub GPU, 10 entrées sur un Cluster de GPU Mk.47 (10 × 687 EHz) | **réussi** : Reçu 6,87 ZHz, Distribué 6,87 ZHz, Inutilisé 0 |
+| Répartition GPU (Auto) | Neuron Reinforcer 86,3 EHz, Entraîneur d'IA 3,55 ZHz, Distillateur 872 EHz, générateur de programme 2,37 ZHz ; somme affichée 6,88 ZHz pour 6,87 ZHz reçus (écart dû à l'arrondi à 3 chiffres de l'affichage) |
+| Erreurs | aucune erreur BRM |
+
 ## v0.1.0-alpha.5 — 2026-11-03 (tests isolés)
 
 Load 220, Hub 336, Demand 138, Unlocks 158, Translations 76 × 2 : 0 échec. Nouveau contrôle : un `connection_created` reçu juste après la création du hub (câble restauré au chargement) n'ajoute pas d'entrée ; le même signal après 30 itérations en ajoute une.
