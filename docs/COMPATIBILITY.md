@@ -38,7 +38,7 @@ Les mêmes alias couvrent les chemins d'Adaptive Smart Manager (`guardipee14-Ada
 
 Un gestionnaire chargé depuis un chemin kuuk **continue d'enregistrer ce chemin**. Un gestionnaire posé avec BRM enregistre le chemin BRM.
 
-**À vérifier en jeu avant de sauvegarder sur l'emplacement principal** : le journal doit indiquer `Legacy smart manager scene paths resolve to BRM (4 aliases)` et les 7 gestionnaires doivent être présents et connectés.
+Vérifié en jeu : le journal indique `Legacy smart manager scene paths resolve to BRM (4 aliases)` et les 7 gestionnaires de la sauvegarde sont présents et connectés. Après une mise à jour du mod, vérifiez la même ligne dans le journal avant de sauvegarder sur votre emplacement principal.
 
 ## Retour arrière vers kuuk
 
@@ -62,7 +62,7 @@ Le jeu écrit `savegame.dat` à chaque sauvegarde, quel que soit l'emplacement c
 
 ## Migration
 
-Aucune migration n'est nécessaire ni effectuée en `v0.1.0-alpha.1`. Une future migration éventuelle (par exemple réécrire les chemins kuuk) devra être explicite, testée sur une copie et réversible.
+Aucune migration n'est nécessaire ni effectuée en `v0.1.0`. Une future migration éventuelle (par exemple réécrire les chemins kuuk) devra être explicite, testée sur une copie et réversible.
 
 ## Format de sauvegarde du hub
 
