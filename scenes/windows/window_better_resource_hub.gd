@@ -93,6 +93,11 @@ var late_appended_ports := 0
 # Ports created after the window was set up. The game only feeds ports that
 # existed from the start, so these stay inactive until the save is reloaded.
 var _live_ports: Dictionary = {}
+# Loading a save replays connection_created for every restored wire; the
+# free-input helper only reacts to wires made after the hub has run a while,
+# so a port the player removed is not brought back on every load.
+const AUTO_INPUT_ARM_TICKS := 30
+var _ticks_alive := 0
 
 
 func _ensure_ports() -> void:
@@ -137,6 +142,8 @@ func _post_ready() -> void:
 
 
 func tick(_delta: float) -> void:
+    if _ticks_alive < AUTO_INPUT_ARM_TICKS:
+        _ticks_alive += 1
     for channel in _channels.values():
         channel.tick(_mode)
     _diagnose_silent_inputs()
@@ -902,6 +909,8 @@ func _on_topology_changed() -> void:
 
 func _on_connection_changed(_output_id = "", input_id = "") -> void:
     _on_topology_changed()
+    if _ticks_alive < AUTO_INPUT_ARM_TICKS:
+        return
     # An input takes a single wire. When the last free input of a resource
     # gets connected, offer a new free one right away.
     for entry in _ports.values():

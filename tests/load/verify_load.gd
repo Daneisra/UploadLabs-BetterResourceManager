@@ -151,12 +151,18 @@ func test_hub_save_reload() -> void:
         await process_frame
     check(absf(hub.size.y - full_height) <= 1.0, "full view restores the height (%s)" % hub.size.y)
 
-    # Connecting the last free input offers a new free one.
+    # Connecting the last free input offers a new free one, but not for wires
+    # the game restores while loading (connection_created replayed at load).
     var only_input = hub.get_node("PanelContainer/MainContainer/Gpu/Inputs/gpu_in_1/Port")
     only_input.input_id = "upstream-gpu"
     autoload("Signals").connection_created.emit("upstream-gpu", only_input.id)
     await process_frame
-    check(hub.get_node_or_null("PanelContainer/MainContainer/Gpu/Inputs/gpu_in_2/Port") is ResourceContainer, "a free GPU input is added when the last one is wired")
+    check(not hub.get_node("PanelContainer/MainContainer/Gpu/Inputs/gpu_in_2").visible, "no free input added for wires restored at load")
+    for _i in range(31):
+        hub.tick(0.05)
+    autoload("Signals").connection_created.emit("upstream-gpu", only_input.id)
+    await process_frame
+    check(hub.get_node("PanelContainer/MainContainer/Gpu/Inputs/gpu_in_2").visible, "a free GPU input is added when the player wires the last one")
     only_input.input_id = ""
     check(hub.remove_port("gpu_in_2"), "the extra free input can be removed")
     await process_frame

@@ -1,5 +1,22 @@
 # Résultats des tests
 
+## v0.1.0-alpha.5 — 2026-11-03 (tests isolés)
+
+Load 220, Hub 336, Demand 138, Unlocks 158, Translations 76 × 2 : 0 échec. Nouveau contrôle : un `connection_created` reçu juste après la création du hub (câble restauré au chargement) n'ajoute pas d'entrée ; le même signal après 30 itérations en ajoute une.
+
+## v0.1.0-alpha.4 — essai en jeu du 2026-11-03 (Jérémy)
+
+| Point | Résultat |
+|---|---|
+| Hub rechargé, 10 entrées CPU sur 2 Processeurs Mk.52 | **réussi** : Reçu 2,27 ZHz puis 4,81 ZHz après amélioration des processeurs, tout distribué |
+| Hub neuf, entrées branchées une à une (ports de réserve) | **réussi** : chaque entrée révélée reçoit immédiatement (10 entrées CPU, 10 entrées GPU à 687 EHz, 6,87 ZHz) |
+| Réserve épuisée | port marqué « après rechargement », état « 1 port(s) actif(s) après sauvegarde et rechargement » ; actif après rechargement |
+| Deux hubs alimentés par les mêmes processeurs | chacun ne compte que ses entrées ; « Inutilisé » exact sur le hub sans consommateur |
+| Sauvegarde puis rechargement d'un hub créé en alpha.4 | **réussi** : ports et connexions repris |
+| Notation des totaux | identique à celle des ports (`ZHz`, `EHz`) |
+| Erreurs | aucune erreur BRM ; seules les erreurs propres au jeu (`ad_prompt.gd`, dossier `mods-unpacked`) |
+| Défaut | **une entrée vide revient à chaque chargement** (journal : `cpu_in_12` et `gpu_in_13` révélés juste après chaque chargement) — corrigé en alpha.5 |
+
 ## v0.1.0-alpha.4 — 2026-11-03 (tests isolés)
 
 Load 219, Hub 336, Demand 138, Unlocks 158, Translations 76 × 2 : 0 échec. Nouveaux contrôles : réserves créées avec la fenêtre, masquées, révélées par `+`, remises en réserve au retrait, complétées au rechargement ; port en direct signalé « après rechargement » une fois les réserves épuisées ; notation des valeurs identique à celle des ports.

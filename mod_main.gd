@@ -3,7 +3,7 @@ extends Node
 const MOD_DIR := "Daneisra-BetterResourceManager"
 const MOD_ID := "Daneisra-BetterResourceManager"
 const MOD_VERSION := "0.1.0"
-const MOD_BUILD := "alpha.4"
+const MOD_BUILD := "alpha.5"
 const LOG_NAME := "Daneisra:BRM:Main"
 const MOD_ROOT := "res://mods-unpacked/Daneisra-BetterResourceManager"
 const MANAGER_UNLOCKS := preload("res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/manager_unlocks.gd")

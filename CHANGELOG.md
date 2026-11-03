@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.0-alpha.5
+
+### Corrigé
+
+- Une entrée vide ne s'ajoute plus à chaque chargement de la sauvegarde. Le jeu rejoue `connection_created` pour chaque câble restauré ; l'ajout automatique d'une entrée libre ne réagit plus qu'aux branchements faits après une trentaine d'itérations du hub. Un port retiré volontairement ne revient donc plus.
+
 ## v0.1.0-alpha.4
 
 Après l'essai en jeu de l'alpha.3 : le hub fonctionne, mais un port ajouté en cours de partie reste à 0 jusqu'au rechargement (10 entrées branchées, seule la première, créée avec la fenêtre, recevait).
