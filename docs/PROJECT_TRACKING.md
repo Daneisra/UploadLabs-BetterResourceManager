@@ -4,16 +4,16 @@
 
 Un gestionnaire unique, fiable et extensible, qui centralise toutes les ressources CPU et GPU et les répartit efficacement, sans cascades de gestionnaires.
 
-## État au 2026-11-02 — v0.1.0-alpha.1
+## État au 2026-11-03 — v0.1.0-alpha.7
 
 | Livrable | État |
 |---|---|
 | Fork GitHub `Daneisra/UploadLabs-BetterResourceManager`, remotes `origin` / `upstream`, branche `feat/unified-cpu-gpu-hub` | fait |
 | Identité BRM (manifeste, chemins, traductions, packaging) | fait |
-| Smart Thread / GPU Manager conservés, mode Auto ajouté | fait, non testé en jeu |
-| Alias des chemins kuuk / ASM pour les sauvegardes existantes | fait, vérifié hors jeu |
-| Better Resource Hub : ports dynamiques, modes, réglages, interface | fait, non testé en jeu |
-| Correction AI Trainer (surplus + stock en attente) | fait, simulée ; critère en jeu à vérifier |
+| Smart Thread / GPU Manager conservés, mode Auto ajouté | fait, vérifié en jeu (7 gestionnaires kuuk repris, modes changeables) |
+| Alias des chemins kuuk / ASM pour les sauvegardes existantes | fait, vérifié en jeu (chargement) ; retour vers kuuk non vérifié |
+| Better Resource Hub : ports, réserves, modes, réglages, interface | fait, vérifié en jeu (alpha.7) |
+| Correction AI Trainer (surplus + stock en attente) | vérifiée en jeu : ~736 k neurones/s avec le gestionnaire repris, 3,55 ZHz via le hub |
 | Tests isolés (hub, load, demand, unlocks, translations) | réussis |
 | ZIP installable vérifié | fait |
 | Validation en jeu | alpha.7 validée le 2026-11-03 : hubs CPU et GPU, réserves, sauvegarde/rechargement, chaînage, sorties coupées ou plafonnées, copier-coller, affichage de l'état (voir [TEST_RESULTS.md](TEST_RESULTS.md)) |
@@ -27,12 +27,10 @@ Un gestionnaire unique, fiable et extensible, qui centralise toutes les ressourc
 
 ## Prochaines étapes
 
-1. Test en jeu sur une copie de sauvegarde, avec les journaux `[Probe]` pour confirmer les hypothèses d'API.
-2. Selon la sonde : ajuster l'inscription des ports ajoutés en cours de partie si le bureau ne les reconnaît pas.
-3. Mesurer l'AI Trainer (neurones/s) avec le hub dans les conditions du rapport.
-4. Vérifier les raccourcis clavier du jeu pendant la saisie dans les champs du hub.
-5. Ajuster les couleurs et la taille de la fenêtre d'après des captures.
-6. Revue Codex (priorités dans [AGENTS.md](../AGENTS.md)).
+1. Vérifier le retour vers les mods de kuuk sur une **copie** de sauvegarde (voir [COMPATIBILITY.md](COMPATIBILITY.md)).
+2. Vérifier qu'une entrée de Smart Manager débranchée ne garde pas d'ancienne valeur.
+3. Trouver la cause des ports créés en cours de partie inactifs avant rechargement (diagnostic `Input diff`).
+4. Fusionner `feat/unified-cpu-gpu-hub` dans `main`, puis version `v0.1.0` (publication seulement sur décision de Jérémy).
 
 ## Idées pour plus tard
 
