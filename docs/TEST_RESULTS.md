@@ -1,5 +1,16 @@
 # Résultats des tests
 
+## v0.1.0 — vérification d'installation du 2026-11-03 (Jérémy)
+
+ZIP `Daneisra-BetterResourceManager-v0.1.0.zip` construit depuis `main` (`c4b9162`), SHA-256 `c7fc1d15…6a96b5`, seul ZIP BRM installé, mods kuuk désactivés.
+
+| Point | Résultat |
+|---|---|
+| Journal | `Better Resource Manager initialized, version: 0.1.0`, prévol de 26 ressources, 3 fenêtres enregistrées, 4 alias actifs, aucune erreur BRM |
+| Gestionnaire de mods en jeu | BetterResourceManager actif, description « v0.1.0 », lien vers le dépôt du fork ; SmartThreadManager et SmartGPUManager (kuuk) désactivés |
+| Hub CPU, 10 entrées sur 2 Processeurs Mk.52 | Reçu 5,29 ZHz = 2 × (1,13 ZHz + 4 × 378 EHz), tout distribué, Inutilisé 0 |
+| Hub GPU, 10 entrées sur un Cluster de GPU Mk.47 | Reçu 7,56 ZHz = 10 × 756 EHz, tout distribué, Inutilisé 0 |
+
 ## v0.1.0-rc.1 — essai en jeu du 2026-11-03 (Jérémy) : retour vers kuuk
 
 Aller-retour sur l'emplacement 9, avec la sauvegarde d'avant BRM (6 Smart Thread Manager et 1 Smart GPU Manager de kuuk).
