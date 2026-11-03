@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.1.0
+
+Première version de Better Resource Manager. Même code que la v0.1.0-rc.1 ; seul le numéro de version change.
+
+Vérifié en jeu sur Upload Labs 3.0.12 entre le 2026-11-02 et le 2026-11-03 :
+
+- les 7 gestionnaires kuuk existants sont repris sans modifier la sauvegarde, et l'aller-retour vers kuuk fonctionne ;
+- les hubs CPU et GPU à 10 entrées et plus reçoivent et distribuent tout, sans rien inventer ;
+- les ports de réserve fonctionnent immédiatement, et la sauvegarde puis le rechargement conservent ports et câbles ;
+- hubs chaînés, sorties coupées ou plafonnées, copier-coller et changements de mode fonctionnent ;
+- le problème de l'Entraîneur d'IA est réglé (3,55 ZHz via le hub au lieu de 268 EHz avec le gestionnaire de kuuk).
+
+Limite connue : un port créé au-delà des réserves ne reçoit rien avant un rechargement ; il est signalé comme tel.
+
 ## v0.1.0-rc.1
 
 Version candidate de la v0.1.0.

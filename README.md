@@ -2,7 +2,7 @@
 
 Mod Upload Labs qui centralise le CPU et le GPU dans un seul nœud, **Better Resource Hub**, et conserve les **Smart Thread Manager** et **Smart GPU Manager** d'Adaptive Smart Manager.
 
-> **Version : `v0.1.0-rc.1`** — version candidate. Vérifié en jeu jusqu'à l'alpha.7 : hubs CPU et GPU à 10 entrées et plus, ports de réserve, sauvegarde et rechargement, hubs chaînés, sorties coupées ou plafonnées, copier-coller, gestionnaires existants repris. Restent à vérifier : retour vers les mods de kuuk, entrée de Smart Manager débranchée. Voir [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
+> **Version : `v0.1.0`** — première version. Vérifiée en jeu (Upload Labs 3.0.12) : hubs CPU et GPU à 10 entrées et plus, ports de réserve, sauvegarde et rechargement, hubs chaînés, sorties coupées ou plafonnées, copier-coller, gestionnaires existants repris, aller-retour vers les mods de kuuk. Voir [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
 
 *English summary: Better Resource Hub pools CPU (`clock_speed`) and GPU (`gpu_speed`) from any number of input ports and shares each pool between any number of output ports, with priorities, weights, limits and an Auto mode. It also ships the Smart Thread / Smart GPU Managers (same window ids as kuuk's mods and Adaptive Smart Manager). Alpha: in-game validation pending.*
 
@@ -41,7 +41,7 @@ Environnement visé : Upload Labs 3.0.12 (Steam), Mod Loader 7.0.1.
 1. Fermez Upload Labs.
 2. **Sauvegardez** le dossier `%APPDATA%\Upload Labs` (sauvegardes, `mod_user_profiles.json`).
 3. Désactivez `kuuk-SmartThreadManager`, `kuuk-SmartGPUManager` et `guardipee14-AdaptiveSmartManager` s'ils sont installés (gestionnaire de mods en jeu, ou `"is_active": false` dans `mod_user_profiles.json`). Mod Loader 7.0.1 n'applique pas lui-même les incompatibilités déclarées : si l'un d'eux reste actif, BRM n'enregistre que le hub et laisse leurs gestionnaires tranquilles.
-4. Copiez `Daneisra-BetterResourceManager-v0.1.0-rc.1.zip` **sans le décompresser** dans `…\steamapps\common\Upload Labs\mods\`.
+4. Copiez `Daneisra-BetterResourceManager-v0.1.0.zip` **sans le décompresser** dans `…\steamapps\common\Upload Labs\mods\`.
 5. Lancez le jeu. Le journal (`%APPDATA%\Upload Labs\logs\modloader.log`) doit contenir `Better Resource Manager initialized` et `Legacy smart manager scene paths resolve to BRM (4 aliases)`.
 
 ## Retour arrière
@@ -61,7 +61,7 @@ Ce que le retour arrière conserve et ne conserve pas est détaillé dans [docs/
 
 # ZIP installable (ne publie rien), puis sa vérification
 .\tools\New-Release.ps1
-.\tools\Test-Package.ps1 -Archive .\release\Daneisra-BetterResourceManager-v0.1.0-rc.1.zip
+.\tools\Test-Package.ps1 -Archive .\release\Daneisra-BetterResourceManager-v0.1.0.zip
 ```
 
 - Architecture : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)

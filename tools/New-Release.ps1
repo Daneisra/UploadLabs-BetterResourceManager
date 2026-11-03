@@ -29,9 +29,10 @@ $manifest = Get-Content -LiteralPath (Join-Path $rootPath 'manifest.json') -Raw 
 $version = [string]$manifest.version_number
 if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Manifest version is not semantic: $version" }
 $entryPoint = Get-Content -LiteralPath (Join-Path $rootPath 'mod_main.gd') -Raw
-$buildMatch = [regex]::Match($entryPoint, '(?m)^const MOD_BUILD := "([A-Za-z0-9][A-Za-z0-9.-]*)"\r?$')
+$buildMatch = [regex]::Match($entryPoint, '(?m)^const MOD_BUILD := "((?:[A-Za-z0-9][A-Za-z0-9.-]*)?)"\r?$')
 if (-not $buildMatch.Success) { throw 'mod_main.gd does not define MOD_BUILD.' }
-$label = "$version-$($buildMatch.Groups[1].Value)"
+# An empty MOD_BUILD is a final release (0.1.0); otherwise 0.1.0-rc.1 etc.
+$label = if ($buildMatch.Groups[1].Value) { "$version-$($buildMatch.Groups[1].Value)" } else { $version }
 
 if ((Get-Content -LiteralPath (Join-Path $rootPath 'README.md') -Raw) -notmatch [regex]::Escape("v$label")) {
     throw "README.md does not mention v$label."

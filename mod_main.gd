@@ -3,7 +3,8 @@ extends Node
 const MOD_DIR := "Daneisra-BetterResourceManager"
 const MOD_ID := "Daneisra-BetterResourceManager"
 const MOD_VERSION := "0.1.0"
-const MOD_BUILD := "rc.1"
+# Empty for a final release, e.g. "rc.1" for a pre-release.
+const MOD_BUILD := ""
 const LOG_NAME := "Daneisra:BRM:Main"
 const MOD_ROOT := "res://mods-unpacked/Daneisra-BetterResourceManager"
 const MANAGER_UNLOCKS := preload("res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/manager_unlocks.gd")
@@ -53,6 +54,10 @@ var mod_dir_path := ""
 var translations_dir_path := ""
 var legacy_aliases = null
 var active_conflicts: Array[String] = []
+
+
+static func full_version() -> String:
+    return MOD_VERSION if MOD_BUILD.is_empty() else "%s-%s" % [MOD_VERSION, MOD_BUILD]
 
 
 static func _normalized_versions(value) -> Array[String]:
@@ -113,7 +118,7 @@ func _init() -> void:
     _add_translations()
 
     ModLoaderLog.success(
-        "Better Resource Manager initialized, version: %s-%s" % [MOD_VERSION, MOD_BUILD],
+        "Better Resource Manager initialized, version: %s" % full_version(),
         LOG_NAME
     )
 
@@ -339,7 +344,7 @@ func _add_to_data(include_legacy: bool) -> Array[String]:
 func get_aac_compatibility_info() -> Dictionary:
     return {
         "provider": MOD_ID,
-        "version": "%s-%s" % [MOD_VERSION, MOD_BUILD],
+        "version": full_version(),
         "window_ids": [
             "smart_thread_manager",
             "smart_gpu_manager",

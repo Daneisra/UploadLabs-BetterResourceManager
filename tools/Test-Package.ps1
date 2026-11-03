@@ -68,8 +68,9 @@ try {
     if (@($godot.compatible_mod_loader_version) -notcontains '7.0.1') { throw 'Mod Loader 7.0.1 not declared.' }
 
     $main = Read-Entry $zip ($prefix + 'mod_main.gd')
-    $build = [regex]::Match($main, '(?m)^const MOD_BUILD := "([^"]+)"').Groups[1].Value
-    if ([string]::IsNullOrEmpty($build)) { throw 'MOD_BUILD missing.' }
+    $buildMatch = [regex]::Match($main, '(?m)^const MOD_BUILD := "([^"]*)"')
+    if (-not $buildMatch.Success) { throw 'MOD_BUILD missing.' }
+    $build = $buildMatch.Groups[1].Value
     if ($main -notmatch [regex]::Escape("const MOD_DIR := `"$modId`"")) { throw 'MOD_DIR does not match the folder.' }
 
     foreach ($locale in @('en', 'fr')) {
@@ -114,7 +115,7 @@ finally {
 
 [pscustomobject]@{
     ModId             = $modId
-    Version           = "$($manifest.version_number)-$build"
+    Version           = if ($build) { "$($manifest.version_number)-$build" } else { [string]$manifest.version_number }
     FilesVerified     = $expected.Count
     Incompatibilities = $incompatibilities -join ', '
     GameResources     = ($external | Sort-Object) -join ', '

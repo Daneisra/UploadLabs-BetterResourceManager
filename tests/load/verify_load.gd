@@ -98,6 +98,7 @@ func test_registration_and_aliases() -> void:
     check(ModLoaderMod.translations.size() == 2, "en + fr translations registered (%d)" % ModLoaderMod.translations.size())
     check(mod.legacy_aliases != null and mod.legacy_aliases.failed.is_empty(), "every legacy alias verified")
     check(mod.legacy_aliases != null and mod.legacy_aliases.installed.size() == 4, "four legacy aliases installed")
+    check(main_script.full_version() == main_script.MOD_VERSION or main_script.full_version().begins_with(main_script.MOD_VERSION + "-"), "version label built from MOD_VERSION and MOD_BUILD")
 
     for alias in [KUUK_STM, KUUK_SGM, ASM_STM]:
         # Exactly how a save names the scene: res://scenes/windows/ + filename.
