@@ -1,5 +1,14 @@
 # Résultats des tests
 
+## v0.1.0-alpha.7 — essai en jeu du 2026-11-03 (Jérémy)
+
+| Point | Résultat |
+|---|---|
+| Sortie coupée (Antivirus Pro) | **réussi** : état « 1 sortie(s) coupée(s) ou plafonnée(s) à 0 · 4,81 ZHz inutilisés », 0 distribué, besoin de la machine affiché (1,63 ZHz) |
+| Hub CPU, 10 entrées | **réussi** : Reçu 4,81 ZHz, tout distribué une fois la sortie réactivée |
+| Hub GPU, 10 entrées vers le Neuron Reinforcer et la chaîne AI | **réussi** : Reçu 6,87 ZHz, tout distribué ; « Besoin (débit) 1,63 ZHz + ∞ ×1 » ; état « OK » au lieu d'une pénurie permanente |
+| Journal | aucune erreur BRM, aucun faux diagnostic d'entrée silencieuse |
+
 ## v0.1.0-alpha.7 — 2026-11-03 (tests isolés)
 
 Load 223, Hub 353, Demand 138, Unlocks 158, Translations 78 × 2 : 0 échec. Nouveaux contrôles : sortie coupée signalée comme bloquée (et non « aucun besoin ») ; besoin au débit séparé du besoin Auto ; stock en attente signalé sans « Pénurie » ; champ Max affiché `1.00ZHz` et relisible.

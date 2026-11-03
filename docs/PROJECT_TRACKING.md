@@ -16,12 +16,12 @@ Un gestionnaire unique, fiable et extensible, qui centralise toutes les ressourc
 | Correction AI Trainer (surplus + stock en attente) | fait, simulée ; critère en jeu à vérifier |
 | Tests isolés (hub, load, demand, unlocks, translations) | réussis |
 | ZIP installable vérifié | fait |
-| Validation en jeu | alpha.5 validée le 2026-11-03 : hubs CPU et GPU à 10 entrées, réserves, sauvegarde/rechargement (voir [TEST_RESULTS.md](TEST_RESULTS.md)) |
+| Validation en jeu | alpha.7 validée le 2026-11-03 : hubs CPU et GPU, réserves, sauvegarde/rechargement, chaînage, sorties coupées ou plafonnées, copier-coller, affichage de l'état (voir [TEST_RESULTS.md](TEST_RESULTS.md)) |
 
 ## Problèmes connus à traiter
 
 - **Port créé en cours de partie inactif jusqu'au rechargement** (essai alpha.3, 2026-11-03). Contourné en alpha.4 par les ports de réserve, **vérifié en jeu** le 2026-11-03. Cause exacte toujours inconnue (le diagnostic `Input diff` ne se déclenche que si une entrée branchée reste à 0).
-- **Pénurie affichée en permanence** avec un gros stock en attente : traité en alpha.7 (besoin au débit affiché, stock signalé à part), à vérifier en jeu.
+- **Pénurie affichée en permanence** avec un gros stock en attente : corrigé en alpha.7, vérifié en jeu le 2026-11-03.
 
 - **Entrée déconnectée qui garde une ancienne valeur positive** (signalé le 2026-11-02 ; corrigé pour le hub en alpha.3, entrée sans câble remise à 0 et testée ; reste à vérifier pour les Smart Managers). Si le jeu ne remet pas à 0 le `count` d'une entrée quand son câble est retiré, `_read_supply()` (`scripts/hub/brm_resource_channel.gd`) continue de l'additionner. Le hub distribuerait alors une ressource qui n'arrive plus, ce qui violerait la règle de conservation. Piste : ignorer, ou remettre à 0, toute entrée sans source (`input_id` vide / `input` nul). Vérifier en jeu si le cas se produit, puis ajouter un test de régression. Le même risque existe pour les entrées des Smart Managers (comportement hérité, à vérifier).
 
