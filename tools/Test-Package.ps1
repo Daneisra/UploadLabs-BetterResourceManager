@@ -113,12 +113,28 @@ finally {
     $zip.Dispose()
 }
 
+# The .sha256 file next to the ZIP, when present, must be exactly
+# "<hash>  <name>\n": LF only, no CR, no BOM, so `sha256sum -c` accepts it.
+$archiveHash = (Get-FileHash -LiteralPath $Archive -Algorithm SHA256).Hash.ToLowerInvariant()
+$checksumPath = "$((Resolve-Path -LiteralPath $Archive).Path).sha256"
+$checksum = 'absent'
+if (Test-Path -LiteralPath $checksumPath) {
+    $checksumBytes = [IO.File]::ReadAllBytes($checksumPath)
+    if ($checksumBytes -contains 13) { throw "CR character in $checksumPath (sha256sum -c fails on Linux)." }
+    $expectedChecksum = "$archiveHash  $(Split-Path -Leaf $Archive)`n"
+    if ([Text.Encoding]::ASCII.GetString($checksumBytes) -cne $expectedChecksum -or $checksumBytes.Length -ne $expectedChecksum.Length) {
+        throw "Unexpected content in $checksumPath, expected '$($expectedChecksum.TrimEnd())' followed by LF."
+    }
+    $checksum = 'verified (LF)'
+}
+
 [pscustomobject]@{
     ModId             = $modId
     Version           = if ($build) { "$($manifest.version_number)-$build" } else { [string]$manifest.version_number }
     FilesVerified     = $expected.Count
     Incompatibilities = $incompatibilities -join ', '
     GameResources     = ($external | Sort-Object) -join ', '
-    SHA256            = (Get-FileHash -LiteralPath $Archive).Hash.ToLowerInvariant()
+    SHA256            = $archiveHash
+    Checksum          = $checksum
     InGameValidation  = 'pending'
 }

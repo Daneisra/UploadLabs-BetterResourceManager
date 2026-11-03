@@ -95,7 +95,8 @@ finally {
 }
 
 $sha256 = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
-Set-Content -LiteralPath $checksumPath -Value "$sha256  $archiveName" -Encoding ascii
+# LF and no BOM, so `sha256sum -c` works on Linux too (Set-Content writes CRLF).
+[IO.File]::WriteAllText($checksumPath, "$sha256  $archiveName`n", [Text.Encoding]::ASCII)
 
 $verification = & (Join-Path $PSScriptRoot 'Test-Package.ps1') -Archive $archivePath -ProjectRoot $rootPath
 
