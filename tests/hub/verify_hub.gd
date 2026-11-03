@@ -995,6 +995,25 @@ func test_review_regressions() -> void:
         var extreme := Allocator.allocate(1e200, [{"key": "a", "demand": 1e200, "max": 1.0}, req("b", 1.0)], policy)
         check(is_finite(float(extreme.allocated)) and float(extreme.allocated) <= 1e200 * (1.0 + 1e-12), "policy %d: finite and within supply" % policy)
 
+    # alpha.6 in game: a switched-off output reported "nothing needed".
+    off_channel.set_ports([{"uid": "in", "container": hub_input(off_hub, CPU, 100.0)}], [{"uid": "out", "container": off_out, "settings": off_settings}])
+    off_channel.tick(Channel.Mode.AUTO)
+    check(int(off_channel.stats.blocked_ports) == 1, "switched-off output counted as blocked")
+    check(codes(off_channel.stats).has(Diagnostics.PORTS_BLOCKED) and not codes(off_channel.stats).has(Diagnostics.NO_DEMAND), "status says outputs are off, not that nothing is needed")
+
+    # Shortage is about inflow; a large waiting stock is only informative.
+    var stock_hub := make_window("hub_stock")
+    var stock_out := hub_output(stock_hub, CPU)
+    var stocked := make_consumer("stocked_machine", CPU, 10.0, 1.0, 1.0, 1e9)
+    wire(stock_out, stocked.speed)
+    var stock_channel := Channel.new(CPU, stock_hub)
+    stock_channel.set_ports([{"uid": "in", "container": hub_input(stock_hub, CPU, 50.0)}], [{"uid": "out", "container": stock_out, "settings": Layout.default_settings()}])
+    stock_channel.tick(Channel.Mode.AUTO)
+    near(stock_channel.stats.rate_demand, 10.0, "inflow need reported separately")
+    check(stock_channel.stats.finite_demand > 50.0, "Auto need still counts the waiting stock (sent upstream)")
+    check(not codes(stock_channel.stats).has(Diagnostics.SHORTAGE) and codes(stock_channel.stats).has(Diagnostics.BACKLOG), "waiting stock is not reported as a shortage")
+    near(stocked.speed.count, 50.0, "the machine still receives the whole supply")
+
     # 8. Exact determinism including the conservation correction.
     var forward := Allocator.allocate(100.0, [req("x", 1000, 1.0), req("y", 1000, 1.0), req("z", 1000, 4.0)], Allocator.Policy.AUTO)
     var backward := Allocator.allocate(100.0, [req("z", 1000, 4.0), req("y", 1000, 1.0), req("x", 1000, 1.0)], Allocator.Policy.AUTO)

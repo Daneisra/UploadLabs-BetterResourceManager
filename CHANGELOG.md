@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.0-alpha.7
+
+Clarifications d'affichage après l'essai en jeu de l'alpha.6.
+
+### Modifié
+
+- « Besoin (débit) » affiche le besoin au débit entrant. La demande Auto, qui compte aussi le stock en attente, reste celle transmise à l'amont.
+- « Pénurie » n'apparaît plus que si le besoin au débit dépasse l'offre. Un stock en attente plus grand que l'offre est signalé à titre d'information (« Stock en attente : les machines pourraient utiliser jusqu'à … »).
+- Une sortie coupée ou plafonnée à 0 est signalée comme telle, au lieu de « Les machines connectées n'ont besoin de rien ».
+- Les champs Min et Max affichent la même notation que les ports (`1.00ZHz` au lieu de `1e+21`).
+- Le diagnostic des entrées silencieuses ignore les entrées alimentées par un Smart Manager ou un hub, qui envoient légitimement 0 sans besoin en aval.
+
 ## v0.1.0-alpha.6
 
 Corrections de la seconde revue Codex (commit `4ff37ba`).

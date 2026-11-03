@@ -59,7 +59,7 @@ brm_compact,Compact view,Affichage compact
 brm_compact_on,Full view,Affichage complet
 brm_compact_tooltip,"Show only ports, totals and problems","N'afficher que les ports, les totaux et les problèmes"
 brm_summary,In %s · Out %s · Unused %s,Reçu %s · Distribué %s · Inutilisé %s
-brm_summary_demand,Need %s,Besoin %s
+brm_summary_demand,Need (inflow) %s,Besoin (débit) %s
 brm_diag_ok,OK,OK
 brm_diag_no_input,No source connected,Aucune source connectée
 brm_diag_zero_supply,Nothing received (an upstream Smart Manager only sends what the outputs need),Rien reçu (un Smart Manager en amont n'envoie que le besoin des sorties)
@@ -73,5 +73,7 @@ brm_diag_invalid_values,Invalid values ignored,Valeurs invalides ignorées
 brm_diag_graph_truncated,"Network too large, loop check incomplete","Réseau trop grand, contrôle des boucles incomplet"
 brm_diag_many_ports,%d ports: Compact view recommended,%d ports : affichage compact conseillé
 brm_port_after_reload,after reload,après rechargement
-brm_port_after_reload_tooltip,"Upload Labs only feeds ports that exist when the window is set up. Save and reload to activate this port; spare ports are prepared again at every load.","Upload Labs n'alimente que les ports qui existent quand la fenêtre est créée. Sauvegardez puis rechargez pour activer ce port ; des ports de réserve sont préparés à chaque chargement."
-brm_diag_pending_reload,"%d port(s) active after save and reload","%d port(s) actif(s) après sauvegarde et rechargement"
+brm_port_after_reload_tooltip,Upload Labs only feeds ports that exist when the window is set up. Save and reload to activate this port; spare ports are prepared again at every load.,Upload Labs n'alimente que les ports qui existent quand la fenêtre est créée. Sauvegardez puis rechargez pour activer ce port ; des ports de réserve sont préparés à chaque chargement.
+brm_diag_pending_reload,%d port(s) active after save and reload,%d port(s) actif(s) après sauvegarde et rechargement
+brm_diag_ports_blocked,%d output(s) off or capped at 0,%d sortie(s) coupée(s) ou plafonnée(s) à 0
+brm_diag_backlog,Stock waiting: machines could use up to %s,Stock en attente : les machines pourraient utiliser jusqu'à %s

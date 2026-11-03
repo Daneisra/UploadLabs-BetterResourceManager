@@ -17,6 +17,8 @@ const INVALID_VALUES := "invalid_values"
 const GRAPH_TRUNCATED := "graph_truncated"
 const MANY_PORTS := "many_ports"
 const PENDING_RELOAD := "pending_reload"
+const PORTS_BLOCKED := "ports_blocked"
+const BACKLOG := "backlog"
 
 # Unused supply below this share of the supply is rounding, not a warning.
 const UNUSED_WARNING_SHARE := 0.001
@@ -49,11 +51,17 @@ static func evaluate(stats: Dictionary) -> Array:
 
     if targets <= 0:
         codes.append({"code": NO_OUTPUT, "severity": Severity.INFO, "value": 0})
-    elif finite_demand <= 0.0 and uncapped <= 0:
+    elif finite_demand <= 0.0 and uncapped <= 0 and int(stats.get("blocked_ports", 0)) <= 0:
         codes.append({"code": NO_DEMAND, "severity": Severity.INFO, "value": 0})
+    if int(stats.get("blocked_ports", 0)) > 0:
+        codes.append({"code": PORTS_BLOCKED, "severity": Severity.INFO, "value": int(stats.blocked_ports)})
 
+    var rate_demand := float(stats.get("rate_demand", finite_demand))
     if bool(stats.get("shortage", false)) and supply > 0.0:
-        codes.append({"code": SHORTAGE, "severity": Severity.WARNING, "value": finite_demand})
+        codes.append({"code": SHORTAGE, "severity": Severity.WARNING, "value": rate_demand})
+    elif bool(stats.get("backlog", false)) and supply > 0.0:
+        # Machines could drain their waiting stock faster: informative only.
+        codes.append({"code": BACKLOG, "severity": Severity.INFO, "value": finite_demand})
     elif targets > 0 and supply > 0.0 and unused > supply * UNUSED_WARNING_SHARE:
         codes.append({"code": UNUSED, "severity": Severity.INFO, "value": unused})
 

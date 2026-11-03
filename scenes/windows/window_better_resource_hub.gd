@@ -726,7 +726,7 @@ func _refresh_ui() -> void:
             UI.format_value(float(stats.unused)),
         ])
         if not _compact:
-            text += "\n" + _fmt("brm_summary_demand", [UI.format_value(float(stats.finite_demand))])
+            text += "\n" + _fmt("brm_summary_demand", [UI.format_value(float(stats.get("rate_demand", stats.finite_demand)))])
             if int(stats.uncapped) > 0:
                 text += " + ∞ ×%d" % int(stats.uncapped)
         summary.text = text
@@ -814,9 +814,9 @@ func _diagnostic_text(entry: Dictionary) -> String:
     var code := str(entry.code)
     var value = entry.get("value", 0)
     match code:
-        Diagnostics.SHORTAGE, Diagnostics.UNUSED:
+        Diagnostics.SHORTAGE, Diagnostics.UNUSED, Diagnostics.BACKLOG:
             return _fmt("brm_diag_" + code, [UI.format_value(float(value))])
-        Diagnostics.CYCLE, Diagnostics.PORT_UNREGISTERED, Diagnostics.MANY_PORTS, Diagnostics.PENDING_RELOAD:
+        Diagnostics.CYCLE, Diagnostics.PORT_UNREGISTERED, Diagnostics.MANY_PORTS, Diagnostics.PENDING_RELOAD, Diagnostics.PORTS_BLOCKED:
             return _fmt("brm_diag_" + code, [int(value)])
         _:
             return tr("brm_diag_" + code)
@@ -1038,9 +1038,10 @@ func _number_text(value: float) -> String:
 func _limit_text(value: float, zero_is_empty: bool) -> String:
     if value < 0.0 or (zero_is_empty and value <= 0.0):
         return ""
-    # Show the game's compact notation when it reads back to the same value,
-    # otherwise plain scientific notation (always accepted by parse_value).
-    var compact := str(Utils.print_string(value))
+    # Same notation as the ports ("1.00ZHz") when it reads back to the same
+    # value, otherwise plain scientific notation (always accepted by
+    # parse_value).
+    var compact := UI.format_value(value)
     var parsed := UI.parse_value(compact)
     if not is_nan(parsed) and is_equal_approx(parsed, value):
         return compact

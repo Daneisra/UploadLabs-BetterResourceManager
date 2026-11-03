@@ -49,6 +49,11 @@ func test_every_script_loads() -> void:
 
 func test_number_format() -> void:
     var ui = load(MOD_ROOT + "/scripts/hub/brm_hub_ui.gd")
+    var hub_script = load(MOD_ROOT + "/scenes/windows/window_better_resource_hub.gd")
+    var probe_hub: Node = hub_script.new()
+    check(probe_hub._limit_text(1e21, false) == "1.00ZHz", "limit field shows 1.00ZHz for 1e21 (got %s)" % probe_hub._limit_text(1e21, false))
+    check(not is_nan(ui.parse_value(probe_hub._limit_text(1.234567e21, false))), "limit field text always parses back")
+    probe_hub.free()
     var cases := {4.86e20: "486EHz", 1.134e21: "1.13ZHz", 1.62e20: "162EHz", 0.0: "0.00Hz", 9.997e20: "1.00ZHz", 6.48e21: "6.48ZHz", 3.78e20: "378EHz", 1500.0: "1.50kHz"}
     for value in cases.keys():
         var text: String = ui.format_value(value)

@@ -1,5 +1,21 @@
 # Résultats des tests
 
+## v0.1.0-alpha.7 — 2026-11-03 (tests isolés)
+
+Load 223, Hub 353, Demand 138, Unlocks 158, Translations 78 × 2 : 0 échec. Nouveaux contrôles : sortie coupée signalée comme bloquée (et non « aucun besoin ») ; besoin au débit séparé du besoin Auto ; stock en attente signalé sans « Pénurie » ; champ Max affiché `1.00ZHz` et relisible.
+
+## v0.1.0-alpha.6 — essai en jeu du 2026-11-03 (Jérémy)
+
+| Point | Résultat |
+|---|---|
+| Hubs CPU (4,81 ZHz) et GPU (6,87 ZHz) | **réussi**, inchangés |
+| Modes Demande, Ratio, Priorité, Graphe puis Auto sur les deux hubs | aucune erreur dans le journal (résultat visuel non capturé) |
+| Sortie coupée (Antivirus Pro) | **réussi** : 0 distribué ; mais l'état affichait « Les machines connectées n'ont besoin de rien » (corrigé en alpha.7) |
+| Maximum `1e21` sur une sortie | **réussi** : 1,00 ZHz distribués ; le champ affichait `1e+21` (corrigé en alpha.7) |
+| Hub → hub → hub → 2 vendeurs de puissance CPU | **réussi** : 4,81 ZHz → 3,10 ZHz → 1,55 ZHz, « Besoin 0 + ∞ ×2 », état « OK » ; confirme la remontée des cibles non bornées |
+| Copier-coller d'un hub | **réussi** : la copie a ses propres ports, sans connexion, et ne perturbe pas l'original |
+| Journal | aucune erreur BRM ; le diagnostic « Silent input » s'est déclenché sur un hub alimenté par un hub sans consommateur (faux positif, corrigé en alpha.7) |
+
 ## v0.1.0-alpha.6 — 2026-11-03 (tests isolés)
 
 Load 221, Hub 347, Demand 138, Unlocks 158, Translations 76 × 2 : 0 échec.

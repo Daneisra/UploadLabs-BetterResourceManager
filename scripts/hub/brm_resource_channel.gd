@@ -132,8 +132,11 @@ func tick(mode: int) -> void:
         "allocated": float(result.get("allocated", 0.0)),
         "unused": float(result.get("unused", 0.0)),
         "finite_demand": float(result.get("finite_demand", 0.0)),
+        "rate_demand": float(result.get("rate_demand", result.get("finite_demand", 0.0))),
         "uncapped": int(result.get("uncapped_count", 0)),
         "shortage": bool(result.get("shortage", false)),
+        "backlog": bool(result.get("backlog", false)),
+        "blocked_ports": int(result.get("blocked_ports", 0)),
         "invalid_values": int(result.get("invalid_values", 0)) + supply.invalid,
         "targets": _wdata.size(),
         "cycles": _loop_containers.size(),
@@ -242,15 +245,25 @@ func _tick_ports(supply: float, policy: int, smooth: bool) -> Dictionary:
         var maximum := float(port.settings.get("max", -1.0))
         delivering[port.uid] = bool(port.settings.get("enabled", true)) and maximum != 0.0
     var machine_demand := 0.0
+    var rate_demand := 0.0
     var uncapped_machines := 0
+    var blocked: Dictionary = {}
     for name in window_requests.keys():
-        if _window_port.has(name) and bool(delivering.get(_window_port[name], false)):
-            machine_demand += float(window_requests[name].demand)
-            if bool(window_requests[name].uncapped):
-                uncapped_machines += 1
+        if not _window_port.has(name):
+            continue
+        if not bool(delivering.get(_window_port[name], false)):
+            blocked[_window_port[name]] = true
+            continue
+        machine_demand += float(window_requests[name].demand)
+        rate_demand += float(window_requests[name].rate)
+        if bool(window_requests[name].uncapped):
+            uncapped_machines += 1
     top["finite_demand"] = machine_demand
+    top["rate_demand"] = rate_demand
     top["uncapped_count"] = uncapped_machines
-    top["shortage"] = machine_demand > 0.0 and machine_demand > supply * (1.0 + 1e-9)
+    top["blocked_ports"] = blocked.size()
+    top["shortage"] = rate_demand > 0.0 and rate_demand > supply * (1.0 + 1e-9)
+    top["backlog"] = not top.shortage and machine_demand > supply * (1.0 + 1e-9)
     return top
 
 
@@ -289,6 +302,7 @@ func _signature_matches(signature: PackedFloat64Array) -> bool:
 
 func _window_request(name: String, data, smooth: bool) -> Dictionary:
     var demand := 0.0
+    var rate := 0.0
     var uncapped := false
     match data.role:
         SmartWindowData.SmartWindowRoles.CONSUMER, SmartWindowData.SmartWindowRoles.MANAGER:
@@ -296,9 +310,12 @@ func _window_request(name: String, data, smooth: bool) -> Dictionary:
             if smooth:
                 demand = _tracker.smooth(name, demand)
             uncapped = data.is_uncapped_manager()
+            # Inflow-only need, for display: Auto demand also counts material
+            # waiting in buffers, which is not a shortage.
+            rate = minf(data.get_demand(), demand) if demand > 0.0 else 0.0
         SmartWindowData.SmartWindowRoles.STORAGE:
             uncapped = true
-    return {"key": name, "demand": demand, "uncapped": uncapped}
+    return {"key": name, "demand": demand, "uncapped": uncapped, "rate": rate}
 
 
 # Graph mode keeps the original algorithm (line suppliers / receivers and the
@@ -371,6 +388,7 @@ func _tick_graph(supply: float) -> Dictionary:
         "allocated": allocated,
         "unused": maxf(supply - allocated, 0.0),
         "finite_demand": finite,
+        "rate_demand": finite,
         "uncapped_count": storages.size(),
         "shortage": finite > supply * (1.0 + 1e-9),
         "invalid_values": 0,
@@ -537,6 +555,12 @@ func count_silent_inputs() -> int:
     for port in inputs:
         var container = port.container
         if is_instance_valid(container) and _is_input_connected(container) and float(container.count) <= 0.0:
+            # A smart manager or hub upstream legitimately sends 0 when this
+            # hub declares no need; only plain sources are suspicious.
+            var source = container.input if "input" in container else null
+            var source_window = BRMUtils.get_parent_window(source) if is_instance_valid(source) else null
+            if source_window != null and "demand" in source_window:
+                continue
             silent += 1
     return silent
 
