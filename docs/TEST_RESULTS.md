@@ -1,5 +1,19 @@
 # Résultats des tests
 
+## v0.1.0-rc.1 — essai en jeu du 2026-11-03 (Jérémy) : retour vers kuuk
+
+Aller-retour sur l'emplacement 9, avec la sauvegarde d'avant BRM (6 Smart Thread Manager et 1 Smart GPU Manager de kuuk).
+
+| Étape | Résultat |
+|---|---|
+| 1. BRM rc.1, kuuk désactivé : chargement de l'emplacement 9 | **réussi** : les 7 gestionnaires sont présents et connectés, les 4 alias sont actifs, aucune erreur BRM |
+| 1. Entrée d'un Smart Thread Manager débranchée puis rebranchée | **réussi** : 442 EHz → 0,00 Hz en entrée et en sortie → 442 EHz |
+| 1. Sauvegarde par BRM | **réussi** : les 7 gestionnaires gardent leurs chemins `../../mods-unpacked/kuuk-…` ; champ `brm_auto_mode` ajouté |
+| 2. BRM retiré, kuuk réactivé : chargement de l'emplacement 9 | **réussi** : les 7 gestionnaires de kuuk sont présents, connectés et distribuent |
+| Remise en état | BRM rc.1 réinstallé, kuuk désactivé, `savegame.dat` et l'emplacement 9 restaurés depuis la copie d'avant le test |
+
+Constat : sauvegarder l'emplacement 9 a aussi réécrit `savegame.dat`. Le jeu écrit ce fichier à chaque sauvegarde, quel que soit l'emplacement. Pour un test sur un autre emplacement, il faut donc sauvegarder `savegame.dat` avant, puis le restaurer après.
+
 ## v0.1.0-rc.1 — 2026-11-03 (tests isolés)
 
 Load 225, Hub 353, Demand 138, Unlocks 158, Translations 78 × 2 : 0 échec. Nouveau contrôle : entrée de Smart Manager débranchée avec une ancienne valeur, remise à 0 et non redistribuée.

@@ -51,6 +51,8 @@ Mod Godot/GDScript pour Upload Labs 3.0.12 (Steam), Mod Loader 7.0.1, Godot 4.7.
 - Ne jamais surcharger `_ready`, `_enter_tree`, `_exit_tree` d'une classe du jeu sans `super()` ; et `super()` ne compile pas si le parent ne définit pas la méthode. Utiliser `_notification(NOTIFICATION_READY / ENTER_TREE / EXIT_TREE)`.
 - Un nœud créé par code dans une fenêtre doit avoir `owner = fenêtre`, sinon le jeu ne le voit pas (`find_children` ne renvoie que les nœuds possédés).
 
+- Le jeu écrit `savegame.dat` à chaque sauvegarde, quel que soit l'emplacement. Un essai sur un autre emplacement réécrit donc aussi ce fichier : le copier avant, et le restaurer après avec un horodatage récent, car Steam Cloud est actif.
+
 ## Contrats à ne pas casser
 
 - Identifiants de fenêtres `smart_thread_manager`, `smart_gpu_manager`, `better_resource_hub`.

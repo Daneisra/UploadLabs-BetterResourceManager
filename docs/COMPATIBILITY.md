@@ -52,6 +52,14 @@ Un gestionnaire chargé depuis un chemin kuuk **continue d'enregistrer ce chemin
 
 Pour revenir en arrière sans rien perdre, restaurez la sauvegarde faite avant l'installation.
 
+### Vérifié en jeu (2026-11-03)
+
+Aller-retour kuuk → BRM → sauvegarde → kuuk sur une copie de la sauvegarde d'avant BRM : les 7 gestionnaires sont repris par BRM, réenregistrés avec leurs chemins kuuk, puis relus par kuuk, connectés et fonctionnels. Voir [TEST_RESULTS.md](TEST_RESULTS.md).
+
+### Emplacements de sauvegarde
+
+Le jeu écrit `savegame.dat` à chaque sauvegarde, quel que soit l'emplacement chargé, en plus de `savegame<N>.dat`. Steam Cloud est actif pour Upload Labs. Avant tout essai sur un autre emplacement, copiez donc tout `%APPDATA%\Upload Labs`. Ensuite, restaurez `savegame.dat` avec un horodatage récent : sinon, Steam Cloud pourrait proposer la version d'essai.
+
 ## Migration
 
 Aucune migration n'est nécessaire ni effectuée en `v0.1.0-alpha.1`. Une future migration éventuelle (par exemple réécrire les chemins kuuk) devra être explicite, testée sur une copie et réversible.
