@@ -946,6 +946,55 @@ func test_review_regressions() -> void:
     check(int(stale.stats.connected_inputs) == 1, "only wired inputs are counted as connected")
     check(stale.describe_inputs().size() == 2, "input diagnosis describes every port")
 
+    # Review 2 (alpha.5), finding 1: Graph mode hands leftovers to a hub that
+    # only feeds uncapped machines.
+    var graph_hub := make_window("hub_graph_up")
+    var graph_out := hub_output(graph_hub, GPU)
+    var graph_down := UncappedHub.new()
+    graph_down.name = "graph_downstream_hub"
+    graph_down.add_to_group("window")
+    fixtures.append(graph_down)
+    var graph_down_in := add_container(graph_down, GPU, 1, true)
+    var graph_consumer := make_consumer("graph_consumer", GPU, 20.0, 1.0, 1.0, 0.0)
+    wire(graph_out, graph_down_in)
+    wire(graph_out, graph_consumer.speed)
+    var graph_channel := Channel.new(GPU, graph_hub)
+    graph_channel.set_ports([{"uid": "in", "container": hub_input(graph_hub, GPU, 100.0)}], [{"uid": "out", "container": graph_out, "settings": Layout.default_settings()}])
+    # Original Graph smooths demand (lerp 0.5 per tick): let it settle.
+    for _i in range(60):
+        graph_channel.tick(Channel.Mode.GRAPH)
+    near(graph_consumer.speed.count, 20.0, "Graph: finite consumer served")
+    near(graph_down_in.count, 80.0, "Graph: uncapped downstream hub gets the leftovers")
+
+    # Finding 2: a hub whose only output is off does not attract supply.
+    var off_hub := make_window("hub_outputs_off")
+    var off_out := hub_output(off_hub, CPU)
+    var off_seller := make_window("off_seller")
+    var off_seller_speed := add_container(off_seller, CPU, 1, true)
+    var off_finite := make_consumer("off_finite", CPU, 40.0, 1.0, 1.0, 0.0)
+    wire(off_out, off_seller_speed)
+    wire(off_out, off_finite.speed)
+    var off_settings := Layout.default_settings()
+    off_settings.enabled = false
+    var off_channel := Channel.new(CPU, off_hub)
+    off_channel.set_ports([{"uid": "in", "container": hub_input(off_hub, CPU, 100.0)}], [{"uid": "out", "container": off_out, "settings": off_settings}])
+    off_channel.tick(Channel.Mode.AUTO)
+    check(not off_channel.has_uncapped_targets(), "switched-off output: no uncapped appetite reported upstream")
+    near(off_channel.get_finite_demand(), 0.0, "switched-off output: no demand reported upstream")
+    var zero_settings := Layout.default_settings()
+    zero_settings.max = 0.0
+    off_channel.set_ports([{"uid": "in", "container": hub_input(off_hub, CPU, 100.0)}], [{"uid": "out", "container": off_out, "settings": zero_settings}])
+    off_channel.tick(Channel.Mode.AUTO)
+    check(not off_channel.has_uncapped_targets() and off_channel.get_finite_demand() == 0.0, "output capped at 0: nothing reported upstream")
+
+    # Finding 4: a tiny remaining weight never produces an infinite share.
+    var tiny := Allocator.allocate(1e200, [{"key": "a", "demand": 1e200, "max": 1.0}, req("b", 1.0)], Allocator.Policy.AUTO)
+    near(float(tiny.allocations.a), 1.0, "capped request keeps its cap")
+    near(float(tiny.allocations.b), 1e200, "the other request receives the rest, not 0", 1e-9)
+    for policy in POLICIES:
+        var extreme := Allocator.allocate(1e200, [{"key": "a", "demand": 1e200, "max": 1.0}, req("b", 1.0)], policy)
+        check(is_finite(float(extreme.allocated)) and float(extreme.allocated) <= 1e200 * (1.0 + 1e-12), "policy %d: finite and within supply" % policy)
+
     # 8. Exact determinism including the conservation correction.
     var forward := Allocator.allocate(100.0, [req("x", 1000, 1.0), req("y", 1000, 1.0), req("z", 1000, 4.0)], Allocator.Policy.AUTO)
     var backward := Allocator.allocate(100.0, [req("z", 1000, 4.0), req("y", 1000, 1.0), req("x", 1000, 1.0)], Allocator.Policy.AUTO)

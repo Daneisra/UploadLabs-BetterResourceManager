@@ -178,8 +178,10 @@ static func water_fill(budget: float, items: Array, given: Dictionary) -> float:
         var total_weight: float = suffix[index]
         if total_weight <= 0.0:
             break
-        var level := remaining / total_weight
-        if level >= float(item.ratio):
+        # Shares as remaining * (weight / total): the fraction is at most 1, so
+        # a tiny total weight can never produce an infinite level.
+        var share := remaining * (float(item.weight) / total_weight)
+        if share >= float(item.cap):
             given[item.key] = float(given.get(item.key, 0.0)) + float(item.cap)
             remaining -= float(item.cap)
             index += 1
@@ -188,7 +190,7 @@ static func water_fill(budget: float, items: Array, given: Dictionary) -> float:
         # Nobody else saturates: share what is left by weight and stop.
         for tail_index in range(index, active.size()):
             var tail: Dictionary = active[tail_index]
-            given[tail.key] = float(given.get(tail.key, 0.0)) + level * float(tail.weight)
+            given[tail.key] = float(given.get(tail.key, 0.0)) + remaining * (float(tail.weight) / total_weight)
         remaining = 0.0
 
     return maxf(remaining, 0.0)

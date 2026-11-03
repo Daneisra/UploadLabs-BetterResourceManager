@@ -2,7 +2,7 @@
   "name": "BetterResourceManager",
   "namespace": "Daneisra",
   "version_number": "0.1.0",
-  "description": "Better Resource Manager v0.1.0-alpha.5: Better Resource Hub with extensible CPU/GPU inputs and outputs, Auto allocation, and the Smart Thread / Smart GPU Managers from Adaptive Smart Manager test23.",
+  "description": "Better Resource Manager v0.1.0-alpha.6: Better Resource Hub with extensible CPU/GPU inputs and outputs, Auto allocation, and the Smart Thread / Smart GPU Managers from Adaptive Smart Manager test23.",
   "website_url": "https://github.com/Daneisra/UploadLabs-BetterResourceManager",
   "dependencies": [],
   "extra": {

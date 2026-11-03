@@ -271,6 +271,14 @@ func test_hub_save_reload() -> void:
     check(reloaded._graph == null, "Graph mode resources released when the hub leaves the tree")
     root.add_child(reloaded)
     check(reloaded._graph != null, "Graph mode rebuilt when the hub re-enters the tree")
+    # Review 2, finding 3: leaving the tree during a resize must not lock
+    # resizing for good.
+    reloaded._relayout()
+    root.remove_child(reloaded)
+    await process_frame
+    await process_frame
+    check(not reloaded._relayout_pending, "resize lock released when the hub left the tree mid-resize")
+    root.add_child(reloaded)
     check(reloaded.get_channel("clock_speed").graph == reloaded._graph, "channels use the rebuilt graph")
     reloaded.tick(0.05)
 

@@ -1,5 +1,20 @@
 # Résultats des tests
 
+## v0.1.0-alpha.6 — 2026-11-03 (tests isolés)
+
+Load 221, Hub 347, Demand 138, Unlocks 158, Translations 76 × 2 : 0 échec.
+
+Seconde revue Codex (commits `3092e8d..4ff37ba`), 4 constats P2, tous corrigés avec un test de régression :
+
+| # | Constat | Test |
+|---|---|---|
+| 1 | Graphe : hub en aval non borné à 0 | hub en aval reçoit 80 sur 100 après le consommateur de 20 |
+| 2 | sorties coupées ou plafonnées à 0 qui attirent le surplus amont | besoin 0 et aucun appétit non borné publiés |
+| 3 | verrou de redimensionnement jamais relâché si la fenêtre quitte l'arbre | verrou relâché après sortie de l'arbre en cours d'opération |
+| 4 | niveau infini dans `water_fill` avec un poids restant très petit | offre 1e200 : 1 pour la requête plafonnée, le reste pour l'autre, dans les 4 politiques |
+
+Limite rappelée par Codex : le copier-coller dépend de la façon dont le jeu attribue de nouveaux identifiants aux conteneurs collés ; non vérifiable hors jeu.
+
 ## v0.1.0-alpha.5 — essai en jeu du 2026-11-03 (Jérémy)
 
 | Point | Résultat |

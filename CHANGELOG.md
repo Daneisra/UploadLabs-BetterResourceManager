@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.0-alpha.6
+
+Corrections de la seconde revue Codex (commit `4ff37ba`).
+
+### Corrigé
+
+- Mode Graphe : un hub en aval qui n'alimente que des cibles non bornées reçoit les restes au lieu de 0 (même règle que les autres modes).
+- Un hub dont les sorties sont coupées ou plafonnées à 0 ne déclare plus de besoin ni d'appétit non borné à l'amont, et n'attire donc plus de surplus qu'il ne redistribuerait pas.
+- Le redimensionnement de la fenêtre n'est plus bloqué définitivement si le hub quitte l'arbre de scène pendant l'opération.
+- Partage pondéré : les parts sont calculées comme `reste × (poids / poids total)`, sans niveau intermédiaire qui pouvait devenir infini avec un très petit poids restant.
+
 ## v0.1.0-alpha.5
 
 ### Corrigé

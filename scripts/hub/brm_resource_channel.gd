@@ -234,10 +234,17 @@ func _tick_ports(supply: float, policy: int, smooth: bool) -> Dictionary:
 
     # Port-level finite demand counts configured manual amounts; report the
     # machines' own demand instead so chained managers see the real need.
+    # What the hub tells upstream managers only counts machines behind ports
+    # that can deliver: a switched-off output or one capped at 0 must not
+    # attract supply the hub would not pass on.
+    var delivering: Dictionary = {}
+    for port in outputs:
+        var maximum := float(port.settings.get("max", -1.0))
+        delivering[port.uid] = bool(port.settings.get("enabled", true)) and maximum != 0.0
     var machine_demand := 0.0
     var uncapped_machines := 0
     for name in window_requests.keys():
-        if _window_port.has(name):
+        if _window_port.has(name) and bool(delivering.get(_window_port[name], false)):
             machine_demand += float(window_requests[name].demand)
             if bool(window_requests[name].uncapped):
                 uncapped_machines += 1
@@ -324,7 +331,13 @@ func _tick_graph(supply: float) -> Dictionary:
             SmartWindowData.SmartWindowRoles.CONSUMER:
                 consumers.append(name)
             SmartWindowData.SmartWindowRoles.MANAGER:
-                managers.append(name)
+                if data.is_uncapped_manager() and data.get_auto_demand() <= 0.0:
+                    # Same rule as the legacy managers: a downstream hub that
+                    # only feeds uncapped machines takes the leftovers.
+                    storages.append(name)
+                    storage_connections += data.provided.size()
+                else:
+                    managers.append(name)
             SmartWindowData.SmartWindowRoles.STORAGE:
                 storages.append(name)
                 storage_connections += data.provided.size()

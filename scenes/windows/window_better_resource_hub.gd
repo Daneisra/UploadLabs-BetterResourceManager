@@ -830,8 +830,14 @@ func _relayout() -> void:
     if _relayout_pending or not is_inside_tree():
         return
     _relayout_pending = true
-    await get_tree().process_frame
-    await get_tree().process_frame
+    # Keep the tree: get_tree() is null if the window leaves it meanwhile, and
+    # the lock must be released on every path or later resizes stop.
+    var tree := get_tree()
+    await tree.process_frame
+    if not is_inside_tree():
+        _relayout_pending = false
+        return
+    await tree.process_frame
     _relayout_pending = false
     if not is_inside_tree():
         return
