@@ -1,41 +1,72 @@
 extends SceneTree
 
+# Verifies every compiled translation against the CSV, and that each locale
+# keeps the same printf placeholders as English (a missing %s would raise a
+# formatting error in game).
+
+const PLACEHOLDER := "%[sdf]"
+
 
 func fail(message: String) -> void:
-    printerr("ASM TRANSLATION FAIL: " + message)
+    printerr("BRM TRANSLATION FAIL: " + message)
     quit(1)
 
 
 func _initialize() -> void:
     var args := OS.get_cmdline_user_args()
-    if args.size() != 2:
-        fail("Expected CSV and compiled translation paths")
+    if args.size() != 1:
+        fail("Expected the CSV path")
         return
     var csv := FileAccess.open(args[0], FileAccess.READ)
-    var translation := ResourceLoader.load(args[1]) as Translation
-    if csv == null or translation == null:
-        fail("Cannot load CSV or compiled translation")
+    if csv == null:
+        fail("Cannot open CSV")
         return
-    if csv.get_csv_line() != PackedStringArray(["key", "en"]) or translation.locale != "en":
-        fail("Unexpected CSV header or translation locale")
+    var header := csv.get_csv_line()
+    if header.size() < 2 or header[0] != "key" or header[1] != "en":
+        fail("Unexpected CSV header")
         return
+
+    var translations: Array[Translation] = []
+    for column in range(1, header.size()):
+        var path := args[0].get_base_dir().path_join("BetterResourceManager.%s.translation" % header[column])
+        var translation := ResourceLoader.load(path) as Translation
+        if translation == null or translation.locale != header[column]:
+            fail("Cannot load compiled translation for locale %s" % header[column])
+            return
+        translations.append(translation)
+
+    var regex := RegEx.new()
+    regex.compile(PLACEHOLDER)
     var seen: Dictionary = {}
     var mismatches := 0
     while csv.get_position() < csv.get_length():
         var row := csv.get_csv_line()
-        if row.size() != 2 or row[0].is_empty() or seen.has(row[0]):
+        if row.size() == 1 and row[0].is_empty():
+            continue
+        if row.size() != header.size() or row[0].is_empty() or seen.has(row[0]):
             fail("Malformed or duplicate CSV key")
             return
-        if str(translation.get_message(row[0])) != row[1]:
-            printerr("CSV/compiled text mismatch: " + JSON.stringify({"key": row[0], "csv": row[1], "compiled": str(translation.get_message(row[0]))}))
-            mismatches += 1
+        var english_placeholders := _placeholders(regex, row[1])
+        for column in range(1, header.size()):
+            var compiled := str(translations[column - 1].get_message(row[0]))
+            if compiled != row[column]:
+                printerr("CSV/compiled mismatch: %s [%s]" % [row[0], header[column]])
+                mismatches += 1
+            if _placeholders(regex, row[column]) != english_placeholders:
+                printerr("Placeholder mismatch: %s [%s]" % [row[0], header[column]])
+                mismatches += 1
         seen[row[0]] = true
     csv.close()
+
     if mismatches > 0:
-        fail("%d CSV/compiled message mismatches" % mismatches)
+        fail("%d mismatches" % mismatches)
         return
-    if seen.size() != 15:
-        fail("Unexpected original test20 translation key count: %d" % seen.size())
-        return
-    print("ASM TRANSLATION: %d messages verified, 0 failures" % seen.size())
+    print("BRM TRANSLATION: %d messages x %d locales verified, 0 failures" % [seen.size(), translations.size()])
     quit(0)
+
+
+func _placeholders(regex: RegEx, text: String) -> Array:
+    var result: Array = []
+    for match in regex.search_all(text):
+        result.append(match.get_string())
+    return result

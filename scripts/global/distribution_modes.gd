@@ -286,3 +286,39 @@ static func _get_demand_sum(demands: Dictionary) -> float:
 
 static func _sum_acc(acc: float, val: float) -> float:
     return acc + val
+
+
+# Auto (BRM): backlog-aware demand, smoothed, then the shared allocator. Finite
+# consumers and chained managers are served first with max-min fairness,
+# uncapped targets share the leftovers, and any real surplus returns to the
+# finite consumers in proportion to their demand so usable supply is not left
+# idle. state.auto_demands and state.allocator are filled by the container.
+static func distribution_auto(value: float, state: Dictionary) -> void:
+    var allocator = state.get("allocator")
+    var tracker = state.get("tracker")
+    var auto_demands: Dictionary = state.get("auto_demands", {})
+    var requests: Array = []
+
+    for name in state.consumers + state.managers:
+        var raw := float(auto_demands.get(name, 0.0))
+        var data = state.wdata[name]
+        requests.append({
+            "key": str(name),
+            "demand": tracker.smooth(str(name), raw) if tracker != null else raw,
+            "uncapped": data.has_method("is_uncapped_manager") and data.is_uncapped_manager(),
+        })
+    for name in state.storages:
+        requests.append({
+            "key": str(name),
+            "demand": 0.0,
+            "uncapped": true,
+            # Original storages share leftovers by number of wired inputs.
+            "weight": float(maxi(state.wdata[name].provided.size(), 1)),
+        })
+
+    # 0 = BRMAllocator.Policy.AUTO (passed in through state, see container).
+    var result: Dictionary = allocator.allocate(value, requests, 0)
+    for name in state.wdata.keys():
+        state.wdata[name].set_count(float(result.allocations.get(str(name), 0.0)))
+    state.demand = float(result.finite_demand)
+    state.auto_result = result

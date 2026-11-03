@@ -6,7 +6,7 @@ var checks := 0
 
 
 func _init() -> void:
-    var original: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://asm_data.json"))
+    var original: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://brm_data.json"))
     for modern: bool in [false, true]:
         var data := original.duplicate(true)
         var cpu_requirement = ["research.thread_manager"] if modern else "perk.thread_manager"

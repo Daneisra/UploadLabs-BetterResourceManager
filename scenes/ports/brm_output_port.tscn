@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/output_container.tscn" id="1_outport"]
+[ext_resource type="Script" path="res://mods-unpacked/Daneisra-BetterResourceManager/scripts/hub/brm_output_port.gd" id="2_outport"]
+
+[node name="Port" instance=ExtResource("1_outport")]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("2_outport")
+limit = -1.0
+force_resource = true

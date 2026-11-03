@@ -1,79 +1,135 @@
 # Changelog
 
-## v0.1.0-test23
+## v0.1.0
 
-Upload Labs 3.0 unlock/demand compatibility prerelease candidate.
+Première version de Better Resource Manager. Même code que la v0.1.0-rc.1 ; seul le numéro de version change.
 
-- Recognize modern processing consumers using their Process component, while preserving legacy window-level get_goal support.
-- Calculate finite CPU/GPU demand from consumed inputs and current process goal divided by the resource-speed conversion rate.
-- Exclude unrelated buffers and non-consumed resources from modern demand. Keep genuine speed-only consumers uncapped.
-- Refresh required-input normalization and role lists before distribution, respecting paused consumers.
-- Preserve test22 unlock fixes, save-facing ids, connections, modes, Base settings and all three allocation policies.
-- Live-smoke-tested on Upload Labs 3.0.9; 138 demand checks passed on Godot 4.7.2 and 4.6.1, plus 158 unlock checks and 15 translation checks. Full 3.0 gameplay/AAC certification remains outside this focused validation.
+Vérifié en jeu sur Upload Labs 3.0.12 entre le 2026-11-02 et le 2026-11-03 :
 
-## v0.1.0-test22
+- les 7 gestionnaires kuuk existants sont repris sans modifier la sauvegarde, et l'aller-retour vers kuuk fonctionne ;
+- les hubs CPU et GPU à 10 entrées et plus reçoivent et distribuent tout, sans rien inventer ;
+- les ports de réserve fonctionnent immédiatement, et la sauvegarde puis le rechargement conservent ports et câbles ;
+- hubs chaînés, sorties coupées ou plafonnées, copier-coller et changements de mode fonctionnent ;
+- le problème de l'Entraîneur d'IA est réglé (3,55 ZHz via le hub au lieu de 268 EHz avec le gestionnaire de kuuk).
 
-Local Upload Labs 3.0 unlock-compatibility hotfix; no publication implied.
+Limite connue : un port créé au-delà des réserves ne reçoit rien avant un rechargement ; il est signalé comme tel.
 
-- Inherit CPU/GPU unlock requirements and requirement modes from the installed game's ordinary managers before registration.
-- Apply the same requirements to each manager's guide entries, without sharing mutable arrays.
-- Fix the obsolete CPU `perk.thread_manager` gate on 3.0 while retaining the old perk gate on 2.2.
-- Keep allocation code, scenes, node ids, connections, and saves unchanged.
-- Add isolated regression tests for 2.2/3.0 requirements, locked/unlocked progression, mode preservation, and independent arrays.
+## v0.1.0-rc.1
 
-## v0.1.0-test21
+Version candidate de la v0.1.0.
 
-Unpublished package-reconstruction candidate; fresh in-game validation pending.
+### Corrigé
 
-### Reconciled
+- Smart Thread Manager / Smart GPU Manager : une entrée débranchée qui garderait son ancienne valeur est remise à 0 et n'est plus redistribuée (même règle que le hub depuis l'alpha.3).
 
-- Preserve original test20 gameplay, scenes, manager ids/resources and CSV text.
-- Include a compiled English translation, previously absent from the GitHub source package. All 15 messages now match the CSV; the original binary's GPU description incorrectly said "clock-consumers" and now uses the existing CSV's "GPU-speed consumers" wording.
-- Identify test21 in the startup log and manifest description while retaining manifest version `0.1.0` and the repository website URL.
-- Include README alongside LICENSE and NOTICE in the package.
-- Add isolated translation compile/verify tooling and exact 19-file package/source verification, with optional original-test20 gameplay comparison.
-- Require release labels to match the runtime build and refuse overwriting existing local artifacts. Missing compiled translations fail packaging. Release-request automation is unchanged.
+## v0.1.0-alpha.7
 
-### Validation scope
+Clarifications d'affichage après l'essai en jeu de l'alpha.6.
 
-- Godot 4.6.1 loads the rebuilt translation and verifies all 15 CSV messages.
-- Original test20 + AAC test7 passed the earlier three targeted game checks; this is not a new test21 game result.
-- No distribution logic, scene behavior, save-facing ids, AAC implementation or installed mod was changed by this packaging work.
+### Modifié
 
-## v0.1.0-test20
+- « Besoin (débit) » affiche le besoin au débit entrant. La demande Auto, qui compte aussi le stock en attente, reste celle transmise à l'amont.
+- « Pénurie » n'apparaît plus que si le besoin au débit dépasse l'offre. Un stock en attente plus grand que l'offre est signalé à titre d'information (« Stock en attente : les machines pourraient utiliser jusqu'à … »).
+- Une sortie coupée ou plafonnée à 0 est signalée comme telle, au lieu de « Les machines connectées n'ont besoin de rien ».
+- Les champs Min et Max affichent la même notation que les ports (`1.00ZHz` au lieu de `1e+21`).
+- Le diagnostic des entrées silencieuses ignore les entrées alimentées par un Smart Manager ou un hub, qui envoient légitimement 0 sans besoin en aval.
 
-Current release-candidate test build.
+## v0.1.0-alpha.6
 
-### Unified manager
+Corrections de la seconde revue Codex (commit `4ff37ba`).
 
-- Unified Smart Thread Manager and Smart GPU Manager behind one implementation.
-- Preserved legacy manager window ids and CPU/GPU resource contracts.
-- Preserved Ratio, Demand, Graph, manager chaining, and Base count/count-s controls.
+### Corrigé
 
-### Allocation fixes
+- Mode Graphe : un hub en aval qui n'alimente que des cibles non bornées reçoit les restes au lieu de 0 (même règle que les autres modes).
+- Un hub dont les sorties sont coupées ou plafonnées à 0 ne déclare plus de besoin ni d'appétit non borné à l'amont, et n'attire donc plus de surplus qu'il ne redistribuerait pas.
+- Le redimensionnement de la fenêtre n'est plus bloqué définitivement si le hub quitte l'arbre de scène pendant l'opération.
+- Partage pondéré : les parts sont calculées comme `reste × (poids / poids total)`, sans niveau intermédiaire qui pouvait devenir infini avec un très petit poids restant.
 
-- Fixed the Demand shortage path that could allocate ~90% of each remaining remainder, creating a GHz → MHz → kHz → Hz → zero starvation ladder across later consumers.
-- Fairly shares the unsatisfied finite-consumer tail when total demand exceeds supply.
-- Redistributes surplus Demand supply after finite calculated need is satisfied so available resource remains usable.
-- Retained explicit uncapped/storage handling for GPU targets.
-- Added defensive zero-value and transient-topology guards.
+## v0.1.0-alpha.5
 
-### Graph/runtime fixes
+### Corrigé
 
-- Rebuilds Graph filters instead of retaining stale topology entries.
-- Disposes Graph signal/listener ownership when leaving Graph mode or deleting the manager.
-- Improved registration/version handling and defensive compatibility metadata.
+- Une entrée vide ne s'ajoute plus à chaque chargement de la sauvegarde. Le jeu rejoue `connection_created` pour chaque câble restauré ; l'ajout automatique d'une entrée libre ne réagit plus qu'aux branchements faits après une trentaine d'itérations du hub. Un port retiré volontairement ne revient donc plus.
 
-### UI
+## v0.1.0-alpha.4
 
-- Restored clickable Mode and Base controls.
-- Added live Need/Supply status.
-- Normalized Need/Supply comparisons to one naturally promoted Upload Labs unit.
-- Made Smart Thread and Smart GPU Manager layouts compact and consistent.
-- Shows uncapped/starved state without hiding Supply information.
+Après l'essai en jeu de l'alpha.3 : le hub fonctionne, mais un port ajouté en cours de partie reste à 0 jusqu'au rechargement (10 entrées branchées, seule la première, créée avec la fenêtre, recevait).
 
-### Diagnostics / compatibility
+### Ajouté
 
-- Added compact distribution diagnostics for supply, finite demand, allocation, headroom/over-allocation, starvation, and low allocations.
-- Added read-only AAC compatibility surface (`window_binds` and `get_aac_manager_snapshot()`).
-- No AAC ownership of manager distribution or topology mutation.
+- **Ports de réserve** : chaque hub prépare dès sa création 8 entrées et 4 sorties masquées par ressource. `+ Entrée` / `+ Sortie` et l'entrée libre automatique révèlent un port de réserve, qui fonctionne tout de suite. Retirer un port le remet en réserve. Les réserves sont complétées à chaque chargement.
+- Au-delà des réserves, un port créé en direct est marqué « après rechargement » (et signalé dans l'état de la ressource) au lieu de paraître fonctionnel.
+- Diagnostic en jeu : si une entrée branchée reste à 0, le journal compare ses propriétés et connexions de signaux à celles d'une entrée qui reçoit, pour trouver la vraie cause.
+
+### Modifié
+
+- Les totaux du hub utilisent la même notation que les ports du jeu (`486EHz`, `1.13ZHz`) au lieu de celle de `Utils.print_string` (`486abHz`, `1.13acHz`).
+
+## v0.1.0-alpha.3
+
+Corrections après l'essai en jeu de l'alpha.2 (entrées à 0 même branchées directement sur un Processeur Mk.52, fond transparent, câbles qui ne suivent pas le nœud, réglages illisibles).
+
+### Corrigé
+
+- Le hub ne remplace plus `_enter_tree()` / `_exit_tree()` de `WindowBase` (remplacés par des notifications) : l'initialisation native de la fenêtre s'exécute à nouveau. C'est la cause probable du fond transparent, des câbles mal placés et des erreurs `canvas_item is null` restantes.
+- Les ports sont possédés (`owner`) par la fenêtre, comme les nœuds d'une scène de fenêtre classique : le jeu les trouve lui-même parmi les conteneurs de la fenêtre. C'est la cause probable des entrées qui ne recevaient rien.
+- Une entrée déconnectée qui garde une ancienne valeur n'est plus comptée dans la réserve ; elle est remise à 0.
+- Ligne de réglages d'une sortie : les libellés ne se coupent plus après chaque lettre.
+- Smart Managers : leur conteneur de sortie ne remplace plus `_exit_tree()` du conteneur natif.
+
+### Ajouté
+
+- Diagnostic en jeu (3 rapports par session au plus) : si des entrées branchées ne reçoivent rien, le journal décrit leur source telle que le jeu la voit.
+
+## v0.1.0-alpha.2
+
+Corrections après le premier essai en jeu de l'alpha.1 et la revue Codex du commit `3092e8d`.
+
+### Corrigé
+
+- Erreurs `Parameter "canvas_item" is null` au survol et au clic des boutons du hub : le bouton ne remplace plus le `_ready()` natif de `DesktopButton` (même correction pour le bouton Base des Smart Managers).
+- Affichage compact : la fenêtre se réduit réellement (la racine est un `VBoxContainer` qui ne rétrécit pas seule), le contenu ne déborde plus du cadre, le bouton Mode ne s'étire plus.
+- Ports d'un nouveau hub créés avant la collecte des conteneurs par le jeu (plus d'ajout tardif).
+- Machine branchée sur deux sorties : seule la sortie propriétaire (la première active) l'alimente ; une sortie coupée ou plafonnée ne laisse plus rien passer par un second câble.
+- Valeurs finies très grandes : plus de débordement vers INF ni de part NaN dans l'allocateur ; une offre totale infinie est refusée dans tous les modes, y compris Graphe.
+- Mode Graphe rétabli quand le hub revient dans l'arbre de scène.
+- Somme de conservation calculée dans un ordre canonique (déterminisme exact).
+
+### Ajouté
+
+- Un hub qui n'alimente que des cibles non bornées le signale au gestionnaire en amont, qui lui transmet les restes au lieu de 0.
+- Quand la dernière entrée libre d'une ressource est branchée, une nouvelle entrée libre est ajoutée automatiquement (une entrée native n'accepte qu'un câble).
+- Message plus clair quand un Smart Manager en amont n'envoie rien faute de besoin en sortie.
+- La sonde liste aussi les gestionnaires branchés sur `window_moved`, `register_resource`, `window_created` et `window_initialized`.
+
+## v0.1.0-alpha.1
+
+Première alpha de Better Resource Manager, fork d'Adaptive Smart Manager v0.1.0-test23. Tests isolés réussis ; validation en jeu en attente.
+
+### Ajouté
+
+- **Better Resource Hub** (`better_resource_hub`) : réserves CPU et GPU indépendantes, entrées et sorties ajoutées ou supprimées en cours de partie, uid de port stables, réglages par sortie (priorité, poids, min, max, active, Auto/Manuel), modes Auto, Demande, Ratio, Priorité, Graphe, résumé et alertes par ressource, affichage compact.
+- Allocateur partagé (`scripts/core/brm_allocator.gd`) : remplissage pondéré max-min, conservation garantie, résultats déterministes.
+- Mode **Auto** pour Smart Thread Manager et Smart GPU Manager (option 4), enregistré dans `brm_auto_mode`.
+- Demande Auto tenant compte de la matière en attente dans le stock des machines.
+- Alias des chemins de scène kuuk et ASM : les gestionnaires existants se rechargent sans modifier la sauvegarde.
+- Détection des mods concurrents actifs (Mod Loader 7.0.1 n'applique pas les incompatibilités déclarées).
+- Sonde d'exécution en lecture seule des API du jeu utilisées par le hub.
+- Traduction française ; vérification que chaque langue garde les mêmes paramètres `%s`/`%d`.
+- Suites de tests `tests/hub` (297 contrôles) et `tests/load` (126 contrôles), lanceur `tools/Test-All.ps1`.
+
+### Corrigé
+
+- Sous-allocation de l'AI Trainer (et de toute machine finie avec un stock en attente) : le surplus n'est plus perdu quand aucune cible non bornée n'existe, et la demande Auto compte le stock. Voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+### Modifié
+
+- Identité : `Daneisra-BetterResourceManager`, registre `data/brm_data.json`, traductions `BetterResourceManager.*`.
+- Les Smart Managers enregistrent le chemin de scène depuis lequel ils ont été chargés.
+- ZIP construit avec des chemins `/` (lisibles par Godot) ; le script de release ne publie plus rien.
+
+### Retiré
+
+- Workflow GitHub de publication automatique d'ASM.
+
+L'historique d'Adaptive Smart Manager (test20 à test23) est conservé dans [docs/history/ASM_CHANGELOG.md](docs/history/ASM_CHANGELOG.md).

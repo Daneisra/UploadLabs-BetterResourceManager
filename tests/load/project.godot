@@ -1,0 +1,17 @@
+config_version=5
+
+[application]
+config/name="BRM Isolated Load Tests"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="BRMIsolatedLoadTests"
+config/version="3.0.12"
+
+[autoload]
+Utils="*res://stubs/utils.gd"
+Data="*res://stubs/data.gd"
+Signals="*res://stubs/signals.gd"
+Globals="*res://stubs/globals.gd"
+Attributes="*res://stubs/attributes.gd"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"

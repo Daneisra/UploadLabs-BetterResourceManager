@@ -1,0 +1,79 @@
+key,en,fr
+window_smart_thread_manager,Smart Thread Manager,Smart Thread Manager
+window_stm_desc,Uneven distributor that prioritizes clock-consumers over synchronizers and processing sellers.,Répartiteur inégal qui donne la priorité aux consommateurs de CPU sur les synchroniseurs et les vendeurs.
+window_smart_gpu_manager,Smart GPU Manager,Smart GPU Manager
+window_sgm_desc,Uneven distributor that prioritizes GPU-speed consumers over synchronizers and miners.,Répartiteur inégal qui donne la priorité aux consommateurs de GPU sur les synchroniseurs et les mineurs.
+stmmode_ratio,Mode: Ratio,Mode : Ratio
+stmmode_demand,Mode: Demand,Mode : Demande
+stmmode_graph,Mode: Graph,Mode : Graphe
+guide_window_smart_thread_manager,"Distributes CPU speed between connected nodes.[br]Bar in the middle represents [u][l]approximate[/l][/u] [l]supply/demand[/l] ratio and might be quite different depending on current distribution mode.[br]Distribution mode affects the behaviour of smart manager:[br][l]ratio[/l] one would fit best for lots of independent consumers,[br][l]graph[/l] achieves unmatched efficiency on long lines,[br][l]demand[/l] is faster than graph and is good enough for most linear cases,[br][l]auto[/l] (BRM) counts material waiting in buffers and gives surplus back to consumers.","Répartit la vitesse CPU entre les nœuds connectés.[br]La barre centrale représente le rapport [u][l]approximatif[/l][/u] [l]offre/demande[/l], qui peut varier selon le mode de distribution.[br]Le mode de distribution change le comportement du gestionnaire :[br][l]ratio[/l] convient le mieux à de nombreux consommateurs indépendants,[br][l]graphe[/l] est le plus efficace sur les longues chaînes,[br][l]demande[/l] est plus rapide que graphe et suffit pour la plupart des chaînes linéaires,[br][l]auto[/l] (BRM) tient compte des stocks en attente et redonne le surplus aux consommateurs."
+guide_window_smart_gpu_manager,"Distributes GPU speed between connected nodes.[br]Bar in the middle represents [u][l]approximate[/l][/u] [l]supply/demand[/l] ratio and might be quite different depending on current distribution mode.[br]Distribution mode affects the behaviour of smart manager:[br][l]ratio[/l] one would fit best for lots of independent consumers,[br][l]graph[/l] achieves unmatched efficiency on long lines,[br][l]demand[/l] is faster than graph and is good enough for most linear cases,[br][l]auto[/l] (BRM) counts material waiting in buffers and gives surplus back to consumers.","Répartit la vitesse GPU entre les nœuds connectés.[br]La barre centrale représente le rapport [u][l]approximatif[/l][/u] [l]offre/demande[/l], qui peut varier selon le mode de distribution.[br]Le mode de distribution change le comportement du gestionnaire :[br][l]ratio[/l] convient le mieux à de nombreux consommateurs indépendants,[br][l]graphe[/l] est le plus efficace sur les longues chaînes,[br][l]demande[/l] est plus rapide que graphe et suffit pour la plupart des chaînes linéaires,[br][l]auto[/l] (BRM) tient compte des stocks en attente et redonne le surplus aux consommateurs."
+guide_window_smart_thread_manager_ratio,"[h]Ratio mode[/h][br]Ratio mode is the simplest one: it just gives each consumer as much as it needs at the time, and equally divides values in case of low supply","[h]Mode Ratio[/h][br]Le mode le plus simple : chaque consommateur reçoit ce dont il a besoin, et la ressource est répartie proportionnellement en cas de manque."
+guide_window_smart_thread_manager_demand,"[h]Demand mode[/h][br]Demand mode satisfies demands from lowest to highest, but keeps internal ratio multiplier for each node. Works good for short lines, but struggles to stabilize on long ones.","[h]Mode Demande[/h][br]Satisfait les demandes de la plus petite à la plus grande, puis partage équitablement le reste entre les consommateurs non satisfaits."
+guide_window_smart_thread_manager_graph,"[h]Graph mode[/h][br]Graph mode is the most complex and precise of all three: in that mode, manager knows how consumers depend on each other, and adjusts values so that on each separate line there will be closest to theoretically maximal production",[h]Mode Graphe[/h][br]Le plus complexe et le plus précis : le gestionnaire connaît les dépendances entre consommateurs et ajuste les valeurs pour approcher la production maximale de chaque chaîne.
+guide_window_smart_thread_manager_chaining,"[h]Chaining[/h][br]Smart Managers can be chained with their colleagues: in that case, supplying manager will know the demands of all receiving ones. Receiving managers get same treatment as consumers in ratio and demand modes, and as high-priority storages in graph mode.","[h]Chaînage[/h][br]Les Smart Managers peuvent être chaînés : le gestionnaire qui fournit connaît alors la demande des gestionnaires qui reçoivent. Ceux-ci sont traités comme des consommateurs en modes ratio et demande, et comme des stockages prioritaires en mode graphe."
+stm_cps_text,Base: count/s,Base : quantité/s
+stm_count_text,Base: count,Base : quantité
+stmmode_auto,Mode: Auto,Mode : Auto
+window_better_resource_hub,Better Resource Hub,Better Resource Hub
+window_brh_desc,"Pools CPU and GPU from any number of inputs and shares them between any number of outputs, with no CPU/GPU conversion.","Regroupe le CPU et le GPU de plusieurs entrées et les répartit entre plusieurs sorties, sans conversion entre CPU et GPU."
+guide_window_better_resource_hub,Collects CPU speed and GPU speed in two separate pools and distributes them to the machines connected to its outputs.[br]CPU is never turned into GPU or the other way round. The hub only distributes what its sources really deliver.,"Regroupe la vitesse CPU et la vitesse GPU dans deux réserves séparées et les distribue aux machines branchées sur ses sorties.[br]Le CPU n'est jamais converti en GPU, ni l'inverse. Le hub ne distribue que ce que ses sources fournissent réellement."
+guide_window_better_resource_hub_ports,"[h]Ports[/h][br]Use [l]+ CPU Input[/l], [l]+ GPU Input[/l], [l]+ CPU Output[/l] and [l]+ GPU Output[/l] to add ports. All inputs of a resource feed one pool. A port can only be removed once it is disconnected. Name ports to recognise the machines they feed.","[h]Ports[/h][br]Utilisez [l]+ Entrée CPU[/l], [l]+ Entrée GPU[/l], [l]+ Sortie CPU[/l] et [l]+ Sortie GPU[/l] pour ajouter des ports. Toutes les entrées d'une ressource alimentent la même réserve. Un port ne peut être supprimé qu'une fois déconnecté. Nommez les ports pour reconnaître les machines qu'ils alimentent."
+guide_window_better_resource_hub_modes,"[h]Modes[/h][br][l]Auto[/l] (recommended) estimates each machine's need, including material waiting in its buffer, shares shortages fairly with priorities and gives real surplus back to consumers.[br][l]Demand[/l] satisfies the smallest needs first.[br][l]Ratio[/l] gives everyone the same fraction of their need.[br][l]Priority[/l] serves higher priorities first, even if lower ones get nothing.[br][l]Graph[/l] keeps the original line-aware algorithm.","[h]Modes[/h][br][l]Auto[/l] (recommandé) estime le besoin de chaque machine, y compris la matière en attente dans son stock, partage équitablement les pénuries selon les priorités et redonne le vrai surplus aux consommateurs.[br][l]Demande[/l] satisfait d'abord les plus petits besoins.[br][l]Ratio[/l] donne à chacun la même fraction de son besoin.[br][l]Priorité[/l] sert d'abord les priorités élevées, même si les plus basses n'obtiennent rien.[br][l]Graphe[/l] conserve l'algorithme d'origine adapté aux chaînes."
+guide_window_better_resource_hub_settings,"[h]Output settings[/h][br]Each output has a priority, a weight, a minimum, a maximum, an on/off switch and an Auto/Manual switch. Manual ignores the estimated need and asks for exactly the maximum. Priority, weight and minimum apply in Auto and Priority modes; maximum and on/off apply in every mode except Graph, where only on/off applies.","[h]Réglages des sorties[/h][br]Chaque sortie a une priorité, un poids, un minimum, un maximum, un interrupteur et un choix Auto/Manuel. Manuel ignore le besoin estimé et demande exactement le maximum. Priorité, poids et minimum s'appliquent aux modes Auto et Priorité. Le maximum et l'interrupteur s'appliquent à tous les modes sauf Graphe, où seul l'interrupteur compte."
+brm_section_cpu,CPU,CPU
+brm_section_gpu,GPU,GPU
+brm_add_cpu_input,+ CPU Input,+ Entrée CPU
+brm_add_cpu_output,+ CPU Output,+ Sortie CPU
+brm_add_gpu_input,+ GPU Input,+ Entrée GPU
+brm_add_gpu_output,+ GPU Output,+ Sortie GPU
+brm_add_input_tooltip,Add an input port. All inputs of this resource feed one common pool.,Ajoute un port d'entrée. Toutes les entrées de cette ressource alimentent la même réserve.
+brm_add_output_tooltip,Add an output port to feed another machine or branch.,Ajoute un port de sortie pour alimenter une autre machine ou une branche.
+brm_remove_port,Remove this port,Supprimer ce port
+brm_remove_connected,Disconnect this port before removing it,Déconnectez ce port avant de le supprimer
+brm_input_n,Input %d,Entrée %d
+brm_output_n,Output %d,Sortie %d
+brm_name_tooltip,Name this port to recognise the machine it serves,Nommez ce port pour reconnaître la machine qu'il dessert
+brm_settings_tooltip,Output settings,Réglages de la sortie
+brm_priority,Priority,Priorité
+brm_priority_tooltip,"Higher priority is served first. In Auto, each step doubles this output's share during a shortage.","La priorité la plus haute est servie d'abord. En Auto, chaque cran double la part de cette sortie en cas de pénurie."
+brm_weight,Weight,Poids
+brm_weight_tooltip,Relative share against outputs of the same priority,Part relative face aux sorties de même priorité
+brm_min,Min,Min
+brm_min_tooltip,Amount reserved first when possible (empty = none). Accepts 2.5e21 or 2.5Z.,Quantité réservée en premier si possible (vide = aucune). Accepte 2.5e21 ou 2.5Z.
+brm_max,Max,Max
+brm_max_tooltip,Most this output may receive (empty = no limit). Accepts 2.5e21 or 2.5Z.,Maximum que cette sortie peut recevoir (vide = sans limite). Accepte 2.5e21 ou 2.5Z.
+brm_enabled_on,On,Active
+brm_enabled_off,Off,Coupée
+brm_enabled_tooltip,A switched-off output receives nothing,Une sortie coupée ne reçoit rien
+brm_manual_auto,Need: Auto,Besoin : Auto
+brm_manual_manual,Need: Manual (Max),Besoin : Manuel (Max)
+brm_manual_tooltip,Manual ignores the estimated need and asks for exactly the maximum,Manuel ignore le besoin estimé et demande exactement le maximum
+brm_mode_auto,Mode: Auto,Mode : Auto
+brm_mode_demand,Mode: Demand,Mode : Demande
+brm_mode_ratio,Mode: Ratio,Mode : Ratio
+brm_mode_priority,Mode: Priority,Mode : Priorité
+brm_mode_graph,Mode: Graph,Mode : Graphe
+brm_mode_tooltip,How both pools are shared. Auto is recommended.,Façon de partager les deux réserves. Auto est recommandé.
+brm_compact,Compact view,Affichage compact
+brm_compact_on,Full view,Affichage complet
+brm_compact_tooltip,"Show only ports, totals and problems","N'afficher que les ports, les totaux et les problèmes"
+brm_summary,In %s · Out %s · Unused %s,Reçu %s · Distribué %s · Inutilisé %s
+brm_summary_demand,Need (inflow) %s,Besoin (débit) %s
+brm_diag_ok,OK,OK
+brm_diag_no_input,No source connected,Aucune source connectée
+brm_diag_zero_supply,Nothing received (an upstream Smart Manager only sends what the outputs need),Rien reçu (un Smart Manager en amont n'envoie que le besoin des sorties)
+brm_diag_no_output,No machine connected,Aucune machine connectée
+brm_diag_no_demand,Connected machines need nothing right now,Les machines connectées n'ont besoin de rien
+brm_diag_shortage,Shortage: need %s,Pénurie : besoin de %s
+brm_diag_unused,%s unused,%s inutilisés
+brm_diag_cycle,Loop: %d connection(s) receive nothing,Boucle : %d connexion(s) ne reçoivent rien
+brm_diag_port_unregistered,"%d port(s) not recognised by the game, save and reload","%d port(s) non reconnus par le jeu, sauvegardez puis rechargez"
+brm_diag_invalid_values,Invalid values ignored,Valeurs invalides ignorées
+brm_diag_graph_truncated,"Network too large, loop check incomplete","Réseau trop grand, contrôle des boucles incomplet"
+brm_diag_many_ports,%d ports: Compact view recommended,%d ports : affichage compact conseillé
+brm_port_after_reload,after reload,après rechargement
+brm_port_after_reload_tooltip,Upload Labs only feeds ports that exist when the window is set up. Save and reload to activate this port; spare ports are prepared again at every load.,Upload Labs n'alimente que les ports qui existent quand la fenêtre est créée. Sauvegardez puis rechargez pour activer ce port ; des ports de réserve sont préparés à chaque chargement.
+brm_diag_pending_reload,%d port(s) active after save and reload,%d port(s) actif(s) après sauvegarde et rechargement
+brm_diag_ports_blocked,%d output(s) off or capped at 0,%d sortie(s) coupée(s) ou plafonnée(s) à 0
+brm_diag_backlog,Stock waiting: machines could use up to %s,Stock en attente : les machines pourraient utiliser jusqu'à %s

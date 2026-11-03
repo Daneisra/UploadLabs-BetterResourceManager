@@ -1,29 +1,35 @@
 extends ResourceContainer
 
 const SmartWindowGraph = preload(
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/smart_window_graph.gd"
+    "res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/smart_window_graph.gd"
 )
 const SmartWindowData = preload(
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/smart_window_data.gd"
+    "res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/smart_window_data.gd"
 )
 const SmartDistribution = preload(
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/distribution_modes.gd"
+    "res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/distribution_modes.gd"
 )
-const ASMUtils = preload(
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/asm_utils.gd"
+const BRMUtils = preload(
+    "res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/brm_utils.gd"
 )
-const DISTRIBUTION_LOG_PREFIX := "[guardipee14-AdaptiveSmartManager][Distribution]"
+const BRMAllocator = preload(
+    "res://mods-unpacked/Daneisra-BetterResourceManager/scripts/core/brm_allocator.gd"
+)
+const BRMDemandTracker = preload(
+    "res://mods-unpacked/Daneisra-BetterResourceManager/scripts/core/brm_demand_tracker.gd"
+)
+const DISTRIBUTION_LOG_PREFIX := "[Daneisra-BetterResourceManager][Distribution]"
 
 @export var use_count: bool = false
 
 var _distribution_mode: int = 0
 
-@export_enum("Ratio", "Demand", "Graph")
+@export_enum("Ratio", "Demand", "Graph", "Auto")
 var distribution_mode: int = 0:
     get:
         return _distribution_mode
     set(value):
-        _distribution_mode = clampi(int(value), 0, 2)
+        _distribution_mode = clampi(int(value), 0, 3)
         data_changed = true
 
 
@@ -53,6 +59,7 @@ var state: Dictionary = {
 var state_keep := ["wdata"]
 var data_changed := false
 var distribution_callable: Callable
+var _auto_tracker = BRMDemandTracker.new()
 var _validation_samples_remaining: int = 0
 const CONSERVATION_RELATIVE_WARNING_THRESHOLD := 0.000001
 var _validation_reason: String = ""
@@ -63,6 +70,7 @@ enum SmartContainerMode {
     RATIO = 0,
     DEMAND = 1,
     GRAPH = 2,
+    AUTO = 3,
 }
 
 
@@ -262,6 +270,8 @@ func _mode_name(mode: int) -> String:
             return "Demand"
         SmartContainerMode.GRAPH:
             return "Graph"
+        SmartContainerMode.AUTO:
+            return "Auto"
         _:
             return "Unknown"
 
@@ -288,6 +298,8 @@ func _update_callable(mode: int) -> void:
             distribution_callable = SmartDistribution.distribution_demand
         SmartContainerMode.GRAPH:
             distribution_callable = SmartDistribution.distribution_graph
+        SmartContainerMode.AUTO:
+            distribution_callable = SmartDistribution.distribution_auto
         _:
             distribution_callable = SmartDistribution.distribution_ratio
 
@@ -315,6 +327,14 @@ func _update_state_tick() -> void:
     if graph != null:
         _wdata_set_graph_roles(state)
     state.demands = _get_demands(state)
+    if distribution_mode == SmartContainerMode.AUTO:
+        var auto_demands: Dictionary = {}
+        for name in state.wdata.keys():
+            auto_demands[name] = state.wdata[name].get_auto_demand()
+        state.auto_demands = auto_demands
+        state.allocator = BRMAllocator
+        state.tracker = _auto_tracker
+        _auto_tracker.retain(Array(state.wdata.keys()).map(func(key): return str(key)))
 
 
 func _update_windows(target_state: Dictionary) -> void:
@@ -339,7 +359,7 @@ func _update_graph(
         graph = null
 
     if need_graph and graph == null:
-        var manager_window = ASMUtils.get_parent_window(self)
+        var manager_window = BRMUtils.get_parent_window(self)
         if manager_window == null:
             return
 
@@ -363,7 +383,7 @@ func _update_wdata(
 
     for container: ResourceContainer in target_inputs:
         ids.append(container.id)
-        var target_window = ASMUtils.get_parent_window(container)
+        var target_window = BRMUtils.get_parent_window(container)
         if target_window != null:
             windows.append(target_window)
 
@@ -395,7 +415,15 @@ func _wdata_set_roles(target_state: Dictionary) -> void:
             SmartWindowData.SmartWindowRoles.CONSUMER:
                 consumers.append(name)
             SmartWindowData.SmartWindowRoles.MANAGER:
-                managers.append(name)
+                var manager_data = target_state.wdata[name]
+                if manager_data.is_uncapped_manager() and manager_data.get_demand() <= 0.0:
+                    # A downstream hub that only feeds uncapped machines would
+                    # get 0 as a finite manager: Ratio/Demand/Graph give it the
+                    # leftovers like any other uncapped target instead.
+                    storages.append(name)
+                    storage_connections += manager_data.provided.size()
+                else:
+                    managers.append(name)
             SmartWindowData.SmartWindowRoles.STORAGE:
                 storages.append(name)
                 storage_connections += target_state.wdata[name].provided.size()
@@ -467,7 +495,7 @@ func _refresh_aac_window_binds() -> void:
 
 
 func get_aac_manager_snapshot() -> Dictionary:
-    var parent_window = ASMUtils.get_parent_window(self)
+    var parent_window = BRMUtils.get_parent_window(self)
     var bindings: Array[Dictionary] = []
 
     for data in window_binds.values():
@@ -486,7 +514,7 @@ func get_aac_manager_snapshot() -> Dictionary:
         })
 
     return {
-        "provider": "guardipee14-AdaptiveSmartManager",
+        "provider": "Daneisra-BetterResourceManager",
         "window_name": (
             str(parent_window.name)
             if is_instance_valid(parent_window)
@@ -507,7 +535,11 @@ func get_aac_manager_snapshot() -> Dictionary:
     }
 
 
-func _exit_tree() -> void:
+# A notification, not an _exit_tree override: the game's ResourceContainer
+# may do its own cleanup in _exit_tree, which an override would replace.
+func _notification(what: int) -> void:
+    if what != NOTIFICATION_EXIT_TREE:
+        return
     if graph != null:
         var callback: Callable = Callable(self, "_on_graph_changed")
         if graph.changed.is_connected(callback):

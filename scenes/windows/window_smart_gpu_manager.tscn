@@ -1,14 +1,14 @@
 [gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/windows/window_base.tscn" id="1_4h3qf"]
-[ext_resource type="Script" path="res://mods-unpacked/guardipee14-AdaptiveSmartManager/scenes/windows/window_adaptive_smart_manager.gd" id="2_xeqvc"]
+[ext_resource type="Script" path="res://mods-unpacked/Daneisra-BetterResourceManager/scenes/windows/window_smart_manager.gd" id="2_xeqvc"]
 [ext_resource type="Texture2D" path="res://textures/icons/brain.png" id="3_jjcgv"]
 [ext_resource type="PackedScene" path="res://scenes/input_container.tscn" id="4_2prua"]
 [ext_resource type="PackedScene" path="res://scenes/output_container.tscn" id="5_lcoeh"]
-[ext_resource type="Script" path="res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/option_desktop_button.gd" id="6_1lpg8"]
+[ext_resource type="Script" path="res://mods-unpacked/Daneisra-BetterResourceManager/scripts/option_desktop_button.gd" id="6_1lpg8"]
 [ext_resource type="FontVariation" path="res://themes/fonts/main.tres" id="8_mgogo"]
-[ext_resource type="Script" path="res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/smart_resource_container.gd" id="9_jbbn5"]
-[ext_resource type="Script" path="res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/toggle_desktop_button.gd" id="10_quws3"]
+[ext_resource type="Script" path="res://mods-unpacked/Daneisra-BetterResourceManager/scripts/smart_resource_container.gd" id="9_jbbn5"]
+[ext_resource type="Script" path="res://mods-unpacked/Daneisra-BetterResourceManager/scripts/toggle_desktop_button.gd" id="10_quws3"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nuec8"]
 bg_color = Color(0.270588, 0.333333, 0.458824, 1)
@@ -150,13 +150,15 @@ theme_type_variation = &"stmOptionButton"
 alignment = 1
 selected = 0
 fit_to_longest_item = false
-item_count = 3
+item_count = 4
 popup/item_0/text = "stmmode_ratio"
 popup/item_0/id = 0
 popup/item_1/text = "stmmode_demand"
 popup/item_1/id = 1
 popup/item_2/text = "stmmode_graph"
 popup/item_2/id = 2
+popup/item_3/text = "stmmode_auto"
+popup/item_3/id = 3
 script = ExtResource("6_1lpg8")
 
 [node name="MainContainer" type="VBoxContainer" parent="PanelContainer" parent_id_path=PackedInt32Array(1257840124) index="0" unique_id=631186733]

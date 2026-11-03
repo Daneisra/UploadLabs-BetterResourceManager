@@ -1,0 +1,12 @@
+config_version=5
+
+[application]
+config/name="BRM Isolated Hub Tests"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="BRMIsolatedHubTests"
+
+[autoload]
+Utils="*res://utils.gd"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"

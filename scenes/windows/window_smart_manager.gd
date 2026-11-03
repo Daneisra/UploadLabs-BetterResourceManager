@@ -1,5 +1,11 @@
 extends WindowIndexed
 
+const LegacyAliases = preload("res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/legacy_scene_aliases.gd")
+# Option id of BRM's Auto mode. It is saved separately (brm_auto_mode) and
+# container_mode keeps a Ratio/Demand/Graph value, so the original mods can
+# still read a save written by BRM.
+const AUTO_MODE_ID := 3
+
 @onready var input = $PanelContainer/MainContainer/Input
 @onready var output = $PanelContainer/MainContainer/Output
 @onready var progress_bar = $PanelContainer/MainContainer/Progress/ProgressBar
@@ -16,6 +22,17 @@ var container_mode: int = 1:
         return _container_mode
     set(value):
         _container_mode = clampi(int(value), 0, 2)
+        if is_node_ready():
+            _apply_container_mode()
+
+
+var _brm_auto: bool = false
+
+@export var brm_auto_mode: bool = false:
+    get:
+        return _brm_auto
+    set(value):
+        _brm_auto = bool(value)
         if is_node_ready():
             _apply_container_mode()
 
@@ -71,7 +88,7 @@ func _apply_compatibility_metadata() -> void:
             node.set_meta("window_id", str(window))
         applied += 1
 
-    print("[guardipee14-AdaptiveSmartManager][Compatibility] Metadata window='%s' category='%s' sub_category='%s' nodes=%d" % [
+    print("[Daneisra-BetterResourceManager][Compatibility] Metadata window='%s' category='%s' sub_category='%s' nodes=%d" % [
         str(window),
         category,
         sub_category,
@@ -80,6 +97,10 @@ func _apply_compatibility_metadata() -> void:
 
 
 func tick(_delta: float) -> void:
+    # A disconnected input may keep its last value; it delivers nothing any
+    # more, so it must not be redistributed (same rule as the hub).
+    if "input_id" in input and str(input.input_id).is_empty() and float(input.count) != 0.0:
+        input.count = 0.0
     output.count = input.count
 
     var current_demand := float(demand)
@@ -139,7 +160,7 @@ func tick(_delta: float) -> void:
         # promoted unit instead of replacing the right-hand side with only an
         # "uncapped" count. The ×N next to infinity preserves the uncapped
         # target count without forcing players to compare mixed suffixes.
-        if _container_mode == 1:
+        if _shows_full_supply():
             percent_label.text = (
                 "Supply: "
                 + supply_text
@@ -163,7 +184,7 @@ func tick(_delta: float) -> void:
             + need_text
             + output.suffix
         )
-        if _container_mode == 1 and float(input.count) > 0.0:
+        if _shows_full_supply() and float(input.count) > 0.0:
             percent_label.text = (
                 "Supply: "
                 + supply_text
@@ -336,26 +357,46 @@ func _on_input_resource_set() -> void:
     output.set_resource(input.resource)
 
 
+func _shows_full_supply() -> bool:
+    return _container_mode == 1 or _brm_auto
+
+
+func _scene_filename() -> String:
+    # Keep the path this window was loaded from. A manager placed with kuuk's
+    # mods keeps its kuuk path (resolved by legacy_scene_aliases.gd), so the
+    # save can still be opened with the original mods.
+    if not scene_file_path.is_empty():
+        return LegacyAliases.to_save_filename(scene_file_path)
+    return Data.windows[window].scene + ".tscn"
+
+
 func export() -> Dictionary:
     var dict: Dictionary = super()
-    dict["filename"] = Data.windows[window].scene + ".tscn"
+    dict["filename"] = _scene_filename()
     dict["container_mode"] = _container_mode
     dict["use_count"] = _use_count
+    dict["brm_auto_mode"] = _brm_auto
     return dict
 
 
 func save() -> Dictionary:
     var dict: Dictionary = super()
-    dict["filename"] = Data.windows[window].scene + ".tscn"
+    dict["filename"] = _scene_filename()
     dict["container_mode"] = _container_mode
     dict["use_count"] = _use_count
+    dict["brm_auto_mode"] = _brm_auto
     return dict
 
 
 func _on_option_button_item_selected(index: int) -> void:
     var previous_mode := _container_mode
-    var selected_mode := clampi(int(mode_button.get_item_id(index)), 0, 2)
-    _container_mode = selected_mode
+    var selected_id := int(mode_button.get_item_id(index))
+    var selected_mode := clampi(selected_id, 0, 2)
+    if selected_id == AUTO_MODE_ID:
+        _brm_auto = true
+    else:
+        _brm_auto = false
+        _container_mode = selected_mode
     _apply_container_mode()
     if is_instance_valid(output) and output.has_method("request_distribution_validation"):
         output.call("request_distribution_validation", "mode_change")
@@ -364,11 +405,12 @@ func _on_option_button_item_selected(index: int) -> void:
     if is_instance_valid(output) and "distribution_mode" in output:
         output_mode = int(output.get("distribution_mode"))
 
-    print("[guardipee14-AdaptiveSmartManager][Window] Mode changed window='%s' previous=%d selected=%d current=%d output=%d label='%s'" % [
+    print("[Daneisra-BetterResourceManager][Window] Mode changed window='%s' previous=%d selected=%d current=%d auto=%s output=%d label='%s'" % [
         str(name),
         previous_mode,
-        selected_mode,
+        selected_id,
         _container_mode,
+        str(_brm_auto),
         output_mode,
         str(mode_button.get_item_text(index))
     ])
@@ -384,7 +426,7 @@ func _on_use_count_button_toggled(toggled_on: bool) -> void:
     if is_instance_valid(output) and "use_count" in output:
         output_use_count = bool(output.get("use_count"))
 
-    print("[guardipee14-AdaptiveSmartManager][Window] Base changed window='%s' requested=%s current=%s output=%s label='%s'" % [
+    print("[Daneisra-BetterResourceManager][Window] Base changed window='%s' requested=%s current=%s output=%s label='%s'" % [
         str(name),
         str(toggled_on),
         str(_use_count),
@@ -395,7 +437,7 @@ func _on_use_count_button_toggled(toggled_on: bool) -> void:
 
 func _apply_container_mode() -> void:
     if is_instance_valid(output) and "distribution_mode" in output:
-        output.set("distribution_mode", _container_mode)
+        output.set("distribution_mode", AUTO_MODE_ID if _brm_auto else _container_mode)
     _sync_mode_button()
 
 
@@ -409,7 +451,7 @@ func _sync_mode_button() -> void:
     if not is_instance_valid(mode_button):
         return
 
-    var item_index: int = int(mode_button.get_item_index(_container_mode))
+    var item_index: int = int(mode_button.get_item_index(AUTO_MODE_ID if _brm_auto else _container_mode))
     if item_index >= 0 and mode_button.selected != item_index:
         mode_button.select(item_index)
 
@@ -428,7 +470,7 @@ func _sync_use_count_button() -> void:
 
 func get_aac_manager_info() -> Dictionary:
     return {
-        "provider": "guardipee14-AdaptiveSmartManager",
+        "provider": "Daneisra-BetterResourceManager",
         "window_id": str(window),
         "window_name": str(name),
         "resource": str(output.resource),
@@ -439,7 +481,7 @@ func get_aac_manager_info() -> Dictionary:
         "uncapped_starved_count": int(output.uncapped_starved_count) if "uncapped_starved_count" in output else 0,
         "uncapped_allocated_total": float(output.uncapped_allocated_total) if "uncapped_allocated_total" in output else 0.0,
         "bound_window_count": int(output.bound_window_count) if "bound_window_count" in output else 0,
-        "distribution_mode": _container_mode,
+        "distribution_mode": AUTO_MODE_ID if _brm_auto else _container_mode,
         "use_count": _use_count,
         "read_only": true
     }

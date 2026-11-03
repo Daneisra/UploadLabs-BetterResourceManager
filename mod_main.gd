@@ -1,27 +1,63 @@
 extends Node
 
-const MOD_DIR := "guardipee14-AdaptiveSmartManager"
-const MOD_ID := "guardipee14-AdaptiveSmartManager"
+const MOD_DIR := "Daneisra-BetterResourceManager"
+const MOD_ID := "Daneisra-BetterResourceManager"
 const MOD_VERSION := "0.1.0"
-const MOD_BUILD := "test23"
-const LOG_NAME := "guardipee14:ASM:Main"
-const MANAGER_UNLOCKS := preload("res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/manager_unlocks.gd")
+# Empty for a final release, e.g. "rc.1" for a pre-release.
+const MOD_BUILD := ""
+const LOG_NAME := "Daneisra:BRM:Main"
+const MOD_ROOT := "res://mods-unpacked/Daneisra-BetterResourceManager"
+const MANAGER_UNLOCKS := preload("res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/manager_unlocks.gd")
+const LEGACY_ALIASES := preload("res://mods-unpacked/Daneisra-BetterResourceManager/scripts/global/legacy_scene_aliases.gd")
+
+# Mods that register the same smart_thread_manager / smart_gpu_manager ids.
+# Mod Loader 7.0.1 reads manifest incompatibilities but does not enforce them,
+# so BRM checks for them itself before registering anything that could collide.
+const LEGACY_CONFLICTS := [
+    "kuuk-SmartThreadManager",
+    "kuuk-SmartGPUManager",
+    "guardipee14-AdaptiveSmartManager",
+]
+const LEGACY_WINDOW_IDS := ["smart_thread_manager", "smart_gpu_manager"]
+const HUB_WINDOW_ID := "better_resource_hub"
+
 const RUNTIME_PREFLIGHT_PATHS := [
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/asm_utils.gd",
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/window_graph.gd",
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/smart_window_graph.gd",
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/smart_window_data.gd",
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/global/distribution_modes.gd",
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/smart_resource_container.gd",
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/option_desktop_button.gd",
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scripts/toggle_desktop_button.gd",
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scenes/windows/window_adaptive_smart_manager.gd",
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scenes/windows/window_smart_thread_manager.tscn",
-    "res://mods-unpacked/guardipee14-AdaptiveSmartManager/scenes/windows/window_smart_gpu_manager.tscn"
+    MOD_ROOT + "/scripts/core/brm_allocator.gd",
+    MOD_ROOT + "/scripts/core/brm_demand_tracker.gd",
+    MOD_ROOT + "/scripts/core/brm_port_layout.gd",
+    MOD_ROOT + "/scripts/core/brm_cycle_guard.gd",
+    MOD_ROOT + "/scripts/core/brm_diagnostics.gd",
+    MOD_ROOT + "/scripts/global/brm_utils.gd",
+    MOD_ROOT + "/scripts/global/window_graph.gd",
+    MOD_ROOT + "/scripts/global/smart_window_graph.gd",
+    MOD_ROOT + "/scripts/global/smart_window_data.gd",
+    MOD_ROOT + "/scripts/global/distribution_modes.gd",
+    MOD_ROOT + "/scripts/global/legacy_scene_aliases.gd",
+    MOD_ROOT + "/scripts/global/brm_runtime_probe.gd",
+    MOD_ROOT + "/scripts/smart_resource_container.gd",
+    MOD_ROOT + "/scripts/option_desktop_button.gd",
+    MOD_ROOT + "/scripts/toggle_desktop_button.gd",
+    MOD_ROOT + "/scripts/hub/brm_action_button.gd",
+    MOD_ROOT + "/scripts/hub/brm_output_port.gd",
+    MOD_ROOT + "/scripts/hub/brm_resource_channel.gd",
+    MOD_ROOT + "/scripts/hub/brm_hub_ui.gd",
+    MOD_ROOT + "/scenes/windows/window_smart_manager.gd",
+    MOD_ROOT + "/scenes/windows/window_better_resource_hub.gd",
+    MOD_ROOT + "/scenes/windows/window_smart_thread_manager.tscn",
+    MOD_ROOT + "/scenes/windows/window_smart_gpu_manager.tscn",
+    MOD_ROOT + "/scenes/windows/window_better_resource_hub.tscn",
+    MOD_ROOT + "/scenes/ports/brm_input_port.tscn",
+    MOD_ROOT + "/scenes/ports/brm_output_port.tscn",
 ]
 
 var mod_dir_path := ""
 var translations_dir_path := ""
+var legacy_aliases = null
+var active_conflicts: Array[String] = []
+
+
+static func full_version() -> String:
+    return MOD_VERSION if MOD_BUILD.is_empty() else "%s-%s" % [MOD_VERSION, MOD_BUILD]
 
 
 static func _normalized_versions(value) -> Array[String]:
@@ -82,17 +118,13 @@ func _init() -> void:
     _add_translations()
 
     ModLoaderLog.success(
-        "Adaptive Smart Manager initialized, version: %s (%s 3.0 process-demand compatibility)" % [MOD_VERSION, MOD_BUILD],
-        LOG_NAME
-    )
-    ModLoaderLog.info(
-        "Preserving window ids: smart_thread_manager + smart_gpu_manager; AAC compatibility surface enabled.",
+        "Better Resource Manager initialized, version: %s" % full_version(),
         LOG_NAME
     )
 
 
 func _ready() -> void:
-    ModLoaderLog.info("Unified window registration started...", LOG_NAME)
+    ModLoaderLog.info("Window registration started...", LOG_NAME)
 
     if not has_node("/root/Data"):
         ModLoaderLog.error(
@@ -103,12 +135,54 @@ func _ready() -> void:
 
     if not _validate_runtime_resources():
         ModLoaderLog.error(
-            "Runtime preflight failed. No Adaptive Smart Manager windows were registered.",
+            "Runtime preflight failed. No Better Resource Manager windows were registered.",
             LOG_NAME
         )
         return
 
-    _add_to_data()
+    active_conflicts = _find_active_conflicts()
+    if not active_conflicts.is_empty():
+        ModLoaderLog.error(
+            "Conflicting manager mods are active: %s. BRM does not register Smart Thread/GPU Manager nor install legacy scene aliases while they run. Disable them in the mod list, then restart. Better Resource Hub is still registered under its own id." % ", ".join(active_conflicts),
+            LOG_NAME
+        )
+
+    var registered := _add_to_data(active_conflicts.is_empty())
+
+    # Only redirect legacy scene paths when BRM itself owns both legacy ids;
+    # otherwise another mod's managers would load BRM scenes.
+    if active_conflicts.is_empty() and LEGACY_WINDOW_IDS.all(func(id): return registered.has(id)):
+        _install_legacy_aliases()
+    elif active_conflicts.is_empty():
+        ModLoaderLog.warning(
+            "Legacy scene aliases not installed: BRM did not register both smart manager ids.",
+            LOG_NAME
+        )
+
+
+func _find_active_conflicts() -> Array[String]:
+    var result: Array[String] = []
+    for mod_id: String in LEGACY_CONFLICTS:
+        if ModLoaderMod.is_mod_active(mod_id):
+            result.append(mod_id)
+    return result
+
+
+func _install_legacy_aliases() -> void:
+    legacy_aliases = LEGACY_ALIASES.new()
+    var success: bool = legacy_aliases.install(mod_dir_path.path_join("scenes/windows"))
+    for path in legacy_aliases.installed:
+        ModLoaderLog.info("Legacy scene alias active: %s" % path, LOG_NAME)
+    for path in legacy_aliases.failed:
+        ModLoaderLog.error(
+            "Legacy scene alias could not be verified: %s. Saved managers from that mod may not load; do not save over your main slot until this is resolved." % path,
+            LOG_NAME
+        )
+    if success:
+        ModLoaderLog.success(
+            "Legacy smart manager scene paths resolve to BRM (%d aliases)." % legacy_aliases.installed.size(),
+            LOG_NAME
+        )
 
 
 func _validate_runtime_resources() -> bool:
@@ -145,7 +219,7 @@ func _validate_runtime_resources() -> bool:
 
     if success:
         ModLoaderLog.success(
-            "Runtime preflight passed for unified manager scripts/scenes.",
+            "Runtime preflight passed for %d scripts/scenes." % RUNTIME_PREFLIGHT_PATHS.size(),
             LOG_NAME
         )
 
@@ -158,6 +232,7 @@ func _add_translations() -> void:
     # Use the res:// resource path directly so this works for mounted ZIP mods,
     # not only physically unpacked directories.
     var names := Array(DirAccess.get_files_at(translations_dir_path))
+    names.sort()
     for raw_name in names:
         var name := str(raw_name)
         if name.ends_with(".translation"):
@@ -166,27 +241,30 @@ func _add_translations() -> void:
             )
 
 
-func _add_to_data() -> void:
-    var path := mod_dir_path.path_join("data/asm_data.json")
+func _add_to_data(include_legacy: bool) -> Array[String]:
+    var path := mod_dir_path.path_join("data/brm_data.json")
     var data := _read_json_dictionary(path, "data")
 
     if data.is_empty():
         ModLoaderLog.error(
-            "Unified data registry could not be loaded.",
+            "Data registry could not be loaded.",
             LOG_NAME
         )
-        return
+        return []
+
+    if not include_legacy:
+        for window_id: String in LEGACY_WINDOW_IDS:
+            data.windows.erase(window_id)
+            data.guides.erase("window_" + window_id)
 
     # 3.0 moved Thread Manager from a token perk to ordinary research.
     # Follow the installed game's base managers, not a version-specific key.
     MANAGER_UNLOCKS.synchronize(data, Data.windows)
-    ModLoaderLog.info(
-        "Smart manager unlocks follow base managers: CPU=%s; GPU=%s" % [
-            str(data.windows.smart_thread_manager.requirement),
-            str(data.windows.smart_gpu_manager.requirement)
-        ],
-        LOG_NAME
-    )
+    for window_id in data.windows.keys():
+        ModLoaderLog.info(
+            "%s unlock follows base manager: %s" % [window_id, str(data.windows[window_id].requirement)],
+            LOG_NAME
+        )
 
     var success := true
     var registered_windows: Array[String] = []
@@ -215,11 +293,10 @@ func _add_to_data() -> void:
         for raw_entry in incoming.keys():
             var entry := str(raw_entry)
 
-            # Bug fix from the original mods: check the registry KEY, not the
-            # incoming dictionary VALUE. Never overwrite another registration.
+            # Check the registry KEY, never overwrite another registration.
             if registry.has(entry):
                 ModLoaderLog.error(
-                    "Data.%s.%s already exists. Adaptive Smart Manager will not overwrite it. Remove the original Smart Thread/GPU Manager mods before using ASM." % [
+                    "Data.%s.%s already exists. Better Resource Manager will not overwrite it. Remove the original Smart Thread/GPU Manager or Adaptive Smart Manager mods before using BRM." % [
                         key,
                         entry
                     ],
@@ -245,30 +322,33 @@ func _add_to_data() -> void:
                     attributes[raw_attr_name]
                 )
 
-    if success and registered_windows.size() == 2:
+    if success:
         ModLoaderLog.success(
-            "Registered unified Smart Thread + Smart GPU Manager windows.",
+            "Registered windows: %s" % ", ".join(registered_windows),
             LOG_NAME
         )
     elif not registered_windows.is_empty():
         ModLoaderLog.warning(
-            "Adaptive Smart Manager registered only %d window(s); check for conflicting legacy mods." % registered_windows.size(),
+            "Better Resource Manager registered only: %s; check for conflicting mods." % ", ".join(registered_windows),
             LOG_NAME
         )
     else:
         ModLoaderLog.error(
-            "No Adaptive Smart Manager windows were registered.",
+            "No Better Resource Manager windows were registered.",
             LOG_NAME
         )
+
+    return registered_windows
 
 
 func get_aac_compatibility_info() -> Dictionary:
     return {
         "provider": MOD_ID,
-        "version": MOD_VERSION,
+        "version": full_version(),
         "window_ids": [
             "smart_thread_manager",
-            "smart_gpu_manager"
+            "smart_gpu_manager",
+            HUB_WINDOW_ID
         ],
         "resources": [
             "clock_speed",
