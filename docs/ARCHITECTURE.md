@@ -116,7 +116,7 @@ Chaque hub crée donc avec la fenêtre `SPARE_INPUTS` = 8 entrées et `SPARE_OUT
 
 ## Ports ajoutés en cours de partie
 
-Un port créé après `_ready` n'existait pas quand la fenêtre a collecté ses conteneurs. Le hub l'ajoute à `containers`, lui attribue un identifiant s'il n'en a pas, et l'inscrit dans `Globals.desktop.resources` s'il n'y est pas. Puis il vérifie l'inscription et affiche « port non reconnu » en cas d'échec, plutôt que de montrer un port qui ne serait pas connectable. **Ce chemin dépend d'API non publiques et doit être validé en jeu** (voir la sonde).
+Un port créé après `_ready` n'existait pas quand la fenêtre a collecté ses conteneurs. Le hub l'ajoute à `containers`, lui attribue un identifiant s'il n'en a pas, et l'inscrit dans `Globals.desktop.resources` s'il n'y est pas. Puis il vérifie l'inscription et affiche « port non reconnu » en cas d'échec. En jeu, ce port est bien inscrit et connectable, mais il ne reçoit rien avant un rechargement : il n'est donc utilisé qu'une fois les ports de réserve épuisés, et il est marqué « après rechargement » (voir « Ports de réserve »).
 
 ## Sonde d'exécution
 
@@ -135,7 +135,7 @@ Tirées du code public d'ASM, de kuuk, de BetterSplitters, de Where Should I Con
 | `load()` renvoie l'entrée du cache même si un fichier existe au même chemin | moteur Godot 4.7.2, test de chargement, essai en jeu | confirmé (les 7 gestionnaires kuuk se chargent en BRM) |
 | Mod Loader monte les ZIP désactivés | source ML 7.0.1 | confirmé (source) |
 | Mod Loader n'applique pas `incompatibilities` | source ML 7.0.1 | confirmé (source) |
-| Un port créé en cours de partie devient connectable | essai en jeu alpha.1 | confirmé (le jeu l'inscrit lui-même) |
+| Un port créé en cours de partie devient connectable | essai en jeu alpha.1 | connectable (le jeu l'inscrit lui-même), mais ne reçoit rien avant rechargement (alpha.3) : ports de réserve |
 | La racine d'une fenêtre est un `VBoxContainer` | sonde, alpha.1 | confirmé |
 | Les conteneurs sont collectés avant le corps du `_ready` de la sous-classe | sonde, alpha.1 | confirmé : un nouveau hub crée ses ports dans `_enter_tree` |
 | `DesktopButton` initialise son dessin dans `_ready` | erreurs `canvas_item` | probable ; ne jamais remplacer son `_ready` (réglages via `NOTIFICATION_READY`) |

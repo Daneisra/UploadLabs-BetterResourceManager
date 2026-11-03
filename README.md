@@ -4,7 +4,7 @@ Mod Upload Labs qui centralise le CPU et le GPU dans un seul nœud, **Better Res
 
 > **Version : `v0.1.0`** — première version. Vérifiée en jeu (Upload Labs 3.0.12) : hubs CPU et GPU à 10 entrées et plus, ports de réserve, sauvegarde et rechargement, hubs chaînés, sorties coupées ou plafonnées, copier-coller, gestionnaires existants repris, aller-retour vers les mods de kuuk. Voir [docs/TEST_RESULTS.md](docs/TEST_RESULTS.md).
 
-*English summary: Better Resource Hub pools CPU (`clock_speed`) and GPU (`gpu_speed`) from any number of input ports and shares each pool between any number of output ports, with priorities, weights, limits and an Auto mode. It also ships the Smart Thread / Smart GPU Managers (same window ids as kuuk's mods and Adaptive Smart Manager). Alpha: in-game validation pending.*
+*English summary: Better Resource Hub pools CPU (`clock_speed`) and GPU (`gpu_speed`) from any number of input ports and shares each pool between any number of output ports, with priorities, weights, limits and an Auto mode. It also ships the Smart Thread / Smart GPU Managers (same window ids as kuuk's mods and Adaptive Smart Manager); existing kuuk managers load without touching the save, and a save can go back to kuuk's mods. Verified in game on Upload Labs 3.0.12. Known limit: a port created beyond the prepared spare ports receives nothing until the save is reloaded (it is flagged).*
 
 ## Fonctionnalités
 

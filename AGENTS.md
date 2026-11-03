@@ -34,14 +34,14 @@ Toutes les suites tournent dans des projets isolés sous `release/` avec des dou
 
 ## À examiner en priorité
 
-1. **Ports ajoutés en cours de partie** (`_adopt_runtime_container`, `_verify_ports`) : inscription manuelle dans `Globals.desktop.resources` et ajout à `containers`. Hypothèse non vérifiée en jeu.
+1. **Ports ajoutés en cours de partie** (`add_port`, `_adopt_runtime_container`, ports de réserve dans `brm_port_layout.gd`). Constaté en jeu : un port créé après la mise en place de la fenêtre est connectable mais ne reçoit rien avant un rechargement ; les ports de réserve créés avec la fenêtre contournent le problème. La cause exacte reste à trouver (diagnostic `Input diff` du journal).
 2. **Restauration au chargement** : construction des ports dans le setter de `brm_layout` avant `container_data` ; repli `brm_port_state` (réécrit `id` et `outputs_id`). Risque si le jeu restaure autrement.
-3. **Alias de chemins** (`legacy_scene_aliases.gd`) : `take_over_path` + cache. Vérifié dans Godot 4.7.2 hors jeu ; dépend de la façon exacte dont le jeu charge `filename`.
+3. **Alias de chemins** (`legacy_scene_aliases.gd`) : `take_over_path` + cache. Vérifié en jeu, aller-retour vers kuuk compris ; toute modification doit garder ce comportement.
 4. **Allocateur** : conservation, plafonds, déterminisme, cas extrêmes (`water_fill`, sommes suffixes, `_enforce_conservation`).
 5. **Cache d'allocation** du canal (`_signature`, `_signature_matches`) : ne doit jamais réutiliser une allocation calculée pour une offre plus grande.
 6. **Demande Auto** (`get_auto_demand`, horizon de stock de 10 s) : effet sur des machines à stock limité ; interaction avec les cibles non bornées.
 7. Détection des boucles (`_upstream_windows`) : uniquement par connexions de la même ressource.
-8. Interface sur le bureau : `LineEdit` et raccourcis clavier du jeu (risque de conflit non vérifié).
+8. Interface sur le bureau : `LineEdit` et raccourcis clavier du jeu (saisie des champs Min/Max utilisée en jeu sans problème signalé ; raccourcis non testés systématiquement).
 
 ## Fichiers à ne pas renommer
 
