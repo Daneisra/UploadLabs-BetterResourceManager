@@ -97,6 +97,10 @@ func _apply_compatibility_metadata() -> void:
 
 
 func tick(_delta: float) -> void:
+    # A disconnected input may keep its last value; it delivers nothing any
+    # more, so it must not be redistributed (same rule as the hub).
+    if "input_id" in input and str(input.input_id).is_empty() and float(input.count) != 0.0:
+        input.count = 0.0
     output.count = input.count
 
     var current_demand := float(demand)

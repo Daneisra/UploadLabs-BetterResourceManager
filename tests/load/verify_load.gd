@@ -305,6 +305,14 @@ func test_legacy_manager_save() -> void:
     check(saved.brm_auto_mode == true, "Auto stored separately")
     var output = manager.get_node("PanelContainer/MainContainer/Output")
     check(output.distribution_mode == 3, "Auto drives the smart container")
+    var manager_input = manager.get_node("PanelContainer/MainContainer/Input")
+    manager_input.input_id = "upstream"
+    manager_input.count = 500.0
+    manager.tick(0.05)
+    check(output.count == 500.0, "wired manager input is passed on")
+    manager_input.input_id = ""
+    manager.tick(0.05)
+    check(manager_input.count == 0.0 and output.count == 0.0, "disconnected manager input keeping an old value is not redistributed")
     manager.queue_free()
 
     var fresh: Node = load(MOD_ROOT + "/scenes/windows/window_smart_thread_manager.tscn").instantiate()

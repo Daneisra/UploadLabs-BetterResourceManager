@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.0-rc.1
+
+Version candidate de la v0.1.0.
+
+### Corrigé
+
+- Smart Thread Manager / Smart GPU Manager : une entrée débranchée qui garderait son ancienne valeur est remise à 0 et n'est plus redistribuée (même règle que le hub depuis l'alpha.3).
+
 ## v0.1.0-alpha.7
 
 Clarifications d'affichage après l'essai en jeu de l'alpha.6.

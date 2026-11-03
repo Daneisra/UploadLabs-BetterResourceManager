@@ -1,5 +1,9 @@
 # Résultats des tests
 
+## v0.1.0-rc.1 — 2026-11-03 (tests isolés)
+
+Load 225, Hub 353, Demand 138, Unlocks 158, Translations 78 × 2 : 0 échec. Nouveau contrôle : entrée de Smart Manager débranchée avec une ancienne valeur, remise à 0 et non redistribuée.
+
 ## v0.1.0-alpha.7 — essai en jeu du 2026-11-03 (Jérémy)
 
 | Point | Résultat |
