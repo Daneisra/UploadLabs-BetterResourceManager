@@ -9,7 +9,7 @@ Load 223, Hub 353, Demand 138, Unlocks 158, Translations 78 × 2 : 0 échec. Nou
 | Point | Résultat |
 |---|---|
 | Hubs CPU (4,81 ZHz) et GPU (6,87 ZHz) | **réussi**, inchangés |
-| Modes Demande, Ratio, Priorité, Graphe puis Auto sur les deux hubs | aucune erreur dans le journal (résultat visuel non capturé) |
+| Modes Demande, Ratio, Priorité, Graphe puis Auto sur les deux hubs | aucune erreur dans le journal ; selon Jérémy, les modes « ont l'air de fonctionner » (pas de capture) |
 | Sortie coupée (Antivirus Pro) | **réussi** : 0 distribué ; mais l'état affichait « Les machines connectées n'ont besoin de rien » (corrigé en alpha.7) |
 | Maximum `1e21` sur une sortie | **réussi** : 1,00 ZHz distribués ; le champ affichait `1e+21` (corrigé en alpha.7) |
 | Hub → hub → hub → 2 vendeurs de puissance CPU | **réussi** : 4,81 ZHz → 3,10 ZHz → 1,55 ZHz, « Besoin 0 + ∞ ×2 », état « OK » ; confirme la remontée des cibles non bornées |
